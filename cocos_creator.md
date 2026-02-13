@@ -1,12 +1,16 @@
 # Cocos Creator 编辑器中需完成的操作
 
-本文档汇总所有需在 Cocos Creator 3.8.8 编辑器中完成的场景结构、节点挂载与属性绑定。代码中的 `@property` 均需在编辑器中拖拽绑定，否则对应功能可能不生效。
+本文档为**编辑器操作清单**，汇总所有需在 Cocos Creator 3.8.8 编辑器中完成的场景结构、节点挂载与属性绑定。代码中的 `@property` 均需在编辑器中拖拽绑定，否则对应功能可能不生效。
+
+**重要**：完成本文档所列全部操作后，方可正常运行首页 → 地图 → 游戏 → 结算 的完整流程。
 
 ---
 
 ## 1. 场景根与单场景显隐
 
 **场景文件**：`assets/scene.scene`（或当前主场景）
+
+**当前现状**：场景中目前仅有 Canvas 及其子节点，需在 Canvas 下新增三个 Root 节点（HomeRoot、MapRoot、GameRoot）以实现单场景显隐切换。
 
 ### 1.1 根节点结构
 
@@ -18,9 +22,9 @@
 | `MapRoot`   | 地图/关卡列表视图容器 |
 | `GameRoot`  | 游戏玩法视图容器 |
 
-### 1.2 SceneBootstrap
+### 1.2 RootViewSwitcher
 
-- 在**场景根节点**上添加组件：**SceneBootstrap**（脚本 `assets/scripts/ui/SceneBootstrap.ts`）。
+- 在**场景根节点**上添加组件：**RootViewSwitcher**（脚本 `assets/scripts/ui/RootViewSwitcher.ts`）。
 - 在 Inspector 中绑定：
   - **Home Root** → 拖入 `HomeRoot` 节点
   - **Map Root** → 拖入 `MapRoot` 节点
@@ -127,8 +131,10 @@
 
 ## 8. 检查清单
 
+**说明**：当前 scene 尚未完成配置，需按下方清单逐项在编辑器中完成。该清单为最高优先级任务，完成后游戏方可运行。
+
 - [ ] 场景根下存在 HomeRoot、MapRoot、GameRoot 三个节点
-- [ ] 场景根挂载 SceneBootstrap，并绑定上述三个根节点
+- [ ] 场景根挂载 RootViewSwitcher，并绑定上述三个根节点
 - [ ] 场景中存在挂载 NavigationManager 的常驻节点
 - [ ] HomeRoot 下挂载 HomeSceneController，并绑定 Start/Shop/Setting 按钮
 - [ ] MapRoot 下挂载 MapSceneController，并绑定 Back、Level List Container（及可选 ScrollView / Prefab）

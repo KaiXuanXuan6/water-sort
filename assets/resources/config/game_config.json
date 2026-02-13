@@ -1,0 +1,6 @@
+{
+  "defaultMaxMoves": 20,
+  "defaultEmptyBottleCount": 2,
+  "initialUndoCount": -1,
+  "initialAddTubeCount": 3
+}

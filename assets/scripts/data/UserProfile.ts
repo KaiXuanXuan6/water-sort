@@ -1,6 +1,8 @@
+import { sys } from 'cc';
+
 /**
- * 用户档案（占位实现）
- * 当前关卡进度、已解锁关卡、道具数量等；后续可接本地存储
+ * 用户档案
+ * 当前关卡进度、已解锁关卡、道具数量等；持久化到 localStorage
  */
 
 export interface UserProfileData {
@@ -15,6 +17,8 @@ export interface UserProfileData {
     /** 加管道具剩余次数 */
     addTubeCount: number;
 }
+
+const STORAGE_KEY = 'water_sort_user_profile';
 
 const DEFAULT_PROFILE: UserProfileData = {
     currentLevel: 1,
@@ -50,13 +54,37 @@ export function setLevelStars(levelId: string, stars: number): void {
     _profile.levelStars[levelId] = Math.min(3, Math.max(0, stars));
 }
 
-/** 占位：从本地存储读取（未实现则返回当前内存值） */
+/** 从本地存储读取并合并到内存 */
 export function loadFromStorage(): UserProfileData {
-    // TODO: sys.localStorage 或 Cocos 持久化
+    try {
+        const raw = sys.localStorage.getItem(STORAGE_KEY);
+        if (!raw) return _profile;
+        const parsed = JSON.parse(raw) as Partial<UserProfileData>;
+        if (parsed && typeof parsed === 'object') {
+            _profile = {
+                currentLevel: sanitizeNumber(parsed.currentLevel, 1, 1),
+                unlockedLevel: sanitizeNumber(parsed.unlockedLevel, 1, 1),
+                levelStars: (parsed.levelStars && typeof parsed.levelStars === 'object') ? parsed.levelStars : {},
+                undoCount: typeof parsed.undoCount === 'number' ? parsed.undoCount : -1,
+                addTubeCount: sanitizeNumber(parsed.addTubeCount, 0, 0)
+            };
+        }
+    } catch (e) {
+        console.warn('[UserProfile] loadFromStorage 解析失败', e);
+    }
     return _profile;
 }
 
-/** 占位：写入本地存储（未实现则 no-op） */
+/** 写入本地存储 */
 export function saveToStorage(): void {
-    // TODO: 持久化 _profile
+    try {
+        sys.localStorage.setItem(STORAGE_KEY, JSON.stringify(_profile));
+    } catch (e) {
+        console.warn('[UserProfile] saveToStorage 写入失败', e);
+    }
+}
+
+function sanitizeNumber(val: unknown, defaultVal: number, min: number): number {
+    const n = typeof val === 'number' && !isNaN(val) ? val : defaultVal;
+    return Math.max(min, Math.floor(n));
 }

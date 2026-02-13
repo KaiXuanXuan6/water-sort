@@ -1,13 +1,13 @@
 # 项目进度宣言 (Project Manifest)
 
-## 项目总体进度: 35%
+## 项目总体进度: 40%
 
 ---
 
 ## 1. 场景列表 (Scene List)
 
 ### 1.1 首页 (HomeScene) - 20%
-- [ ] 创建场景文件
+- [ ] 在现有 scene 中搭建 HomeRoot 视图结构（单场景模式）
 - [ ] 添加背景图
 - [ ] 添加开始按钮 (StartButton)
 - [ ] 添加商店入口按钮 (ShopButton) - 暂留占位
@@ -15,7 +15,7 @@
 - [x] 编写 HomeSceneController 脚本
 
 ### 1.2 地图页 (MapScene) - 20%
-- [ ] 创建场景文件
+- [ ] 在现有 scene 中搭建 MapRoot 视图结构（单场景模式）
 - [ ] 实现关卡列表 UI (LevelList)
 - [ ] 实现关卡进度显示 (ProgressDisplay)
 - [ ] 添加返回主页按钮 (BackButton)
@@ -23,7 +23,7 @@
 - [x] 编写 MapSceneController 脚本
 
 ### 1.3 游戏页 (GameScene) - 20%
-- [ ] 创建场景文件
+- [ ] 在现有 scene 中搭建 GameRoot 视图结构（单场景模式）
 - [ ] 实现顶部进度条 (TopProgressBar)
 - [ ] 实现道具栏 (道具按钮: 撤销、重玩、加管)
 - [ ] 实现瓶子容器区 (BottleContainer)
@@ -60,17 +60,19 @@
   - [x] 从 resources 加载关卡 JSON（loadLevelFromResources）
   - [x] 使用 LevelConfig 校验，单一数据源
 
-- [x] UserProfile.ts（占位）
+- [x] UserProfile.ts
   - [x] 定义用户档案接口 (UserProfileData)
   - [x] 当前关卡进度、已解锁关卡、道具数量
-  - [x] 内存读写 get/set、loadFromStorage/saveToStorage 占位
-  - [ ] 本地存储持久化（TODO）
+  - [x] 内存读写 get/set、loadFromStorage/saveToStorage
+  - [x] 本地存储持久化（sys.localStorage）
 
-- [ ] GameState.ts
-  - [ ] 定义游戏状态枚举
-  - [ ] 当前关卡数据
-  - [ ] 历史操作记录 (用于撤销)
-  - [ ] 当前选中瓶子状态
+- [x] GameConfigLoader.ts
+  - [x] 从 resources 加载 game_config.json
+  - [x] 缓存单例
+
+- [ ] GameState.ts（可选重构）
+  - 当前状态分散在 GameSceneController 与 WaterSortEngine 中，功能已满足
+  - 若需跨场景共享游戏状态，可抽离为 data 层
 
 ### 2.2 逻辑层 - 100%
 **目录**: `assets/scripts/logic/`
@@ -108,7 +110,7 @@
   - [x] 选中状态动画
   - [x] 倒水动画
 
-- [x] SceneBootstrap.ts
+- [x] RootViewSwitcher.ts
   - [x] 按 NavigationManager.currentScene 显隐 homeRoot/mapRoot/gameRoot
 
 - [ ] WaterShader.ts
@@ -123,11 +125,6 @@
 
 ### 2.4 工具类 - 40%
 **目录**: `assets/scripts/utils/`
-
-- [ ] UIManager.ts
-  - [ ] 弹窗显示/隐藏方法
-  - [ ] 场景切换方法
-  - [ ] UI层级管理
 
 - [ ] LevelEditor.ts
   - [ ] 关卡创建界面
@@ -159,29 +156,29 @@
 **目录**: `assets/resources/config/levels/`（仅维护 JSON，符合 DRY）
 
 - [x] level_001.json
-- [ ] level_002.json
+- [x] level_002.json
+- [x] level_003.json
 - [ ] 更多关卡...
 - 说明：运行时通过 LevelDataLoader 从 resources 动态加载，无重复 TS 数据
 
 ### 3.2 游戏配置
-- [ ] game_config.json
-  - [ ] 最大步数
-  - [ ] 空瓶数量
-  - [ ] 道具初始数量
+- [x] game_config.json
+  - [x] 最大步数
+  - [x] 空瓶数量
+  - [x] 道具初始数量
 
 ---
 
 ## 4. 当前任务
 
 ### 进行中
-- 无
+- 在 Cocos 编辑器中配置 scene（HomeRoot/MapRoot/GameRoot + RootViewSwitcher + NavigationManager + 各 Controller 绑定）
 
 ### 待办
 - 实现 WaterShader 水体特效（可选）
-- 在 Cocos 编辑器中为 scene 配置 HomeRoot/MapRoot/GameRoot 并挂载 SceneBootstrap
 
 ### 已完成
-- 单场景显隐：SceneBootstrap 按 currentScene 显隐三块视图；NavigationManager 在 loadScene 前设置 currentScene
+- 单场景显隐：RootViewSwitcher 按 currentScene 显隐三块视图；NavigationManager 在 loadScene 前设置 currentScene
 - 地图页关卡按钮可点击：MapSceneController 动态创建 Button+Label，点击调用 gotoGame(levelId)
 - 结算弹窗实际显示：POPUP_OPEN 携带 data，GameSceneController 显示 resultPopup 并传参 ResultPopupController.show
 - UserProfile 占位：UserProfile.ts 接口与内存实现，MapSceneController.loadUserData 使用
@@ -201,3 +198,7 @@
 - 实现 AssetLoader 资源加载器
 - 实现 BottleManager 瓶子管理器
 - 复制 UI 素材到 resources 目录
+- 梳理项目状态并更新 project_manifest/cocos_creator/CLAUDE 文档
+- 新增 level_002.json、level_003.json 关卡
+- 实现 game_config.json 及 GameConfigLoader
+- UserProfile localStorage 持久化；GameSceneController.saveLevelProgress 联动

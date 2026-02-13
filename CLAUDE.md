@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Cocos Creator 3.8.8 water-sort puzzle game. This is an early-stage project with UI assets imported but no game logic scripts yet.
+Cocos Creator 3.8.8 water-sort puzzle game. Core logic layer (WaterSortEngine, GameStateMachine, LevelValidator) and presentation layer (BottleComponent, RootViewSwitcher) are implemented. Utilities (NavigationManager, BottleManager, AssetLoader, BottleCreator, LevelDataLoader) are complete. **Scene configuration in Cocos Creator Editor is pending**—HomeRoot/MapRoot/GameRoot and Controller bindings must be set up for the game to run.
 
 ## Development Workflow
 
@@ -47,10 +47,10 @@ Engine location: `C:\ProgramData\cocos\editors\Creator\3.8.8\`
 
 | Layer | Components |
 |-------|------------|
-| Data | LevelConfig, UserProfile, GameState |
-| Logic | WaterSortEngine (validation, undo) |
-| Presentation | BottleComponent, WaterShader (2D liquid simulation) |
-| Utilities | UIManager (popup management), LevelEditor |
+| Data | LevelConfig, LevelDataLoader, UserProfile, GameState (optional refactor) |
+| Logic | WaterSortEngine (validation, undo), GameStateMachine, LevelValidator |
+| Presentation | BottleComponent, RootViewSwitcher, WaterShader (optional, 2D liquid simulation) |
+| Utilities | NavigationManager, BottleManager, BottleCreator, AssetLoader; LevelEditor (TODO) |
 
 ### UI Asset Categories
 

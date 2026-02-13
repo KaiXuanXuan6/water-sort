@@ -1,0 +1,70 @@
+{
+  "id": "level_003",
+  "level": 3,
+  "bottles": [
+    {
+      "id": "bottle_0",
+      "capacity": 4,
+      "waters": [
+        { "colorId": 1 },
+        { "colorId": 2 },
+        { "colorId": 3 },
+        { "colorId": 4 }
+      ],
+      "hasCap": false,
+      "bottleType": 1
+    },
+    {
+      "id": "bottle_1",
+      "capacity": 4,
+      "waters": [
+        { "colorId": 2 },
+        { "colorId": 3 },
+        { "colorId": 4 },
+        { "colorId": 1 }
+      ],
+      "hasCap": false,
+      "bottleType": 1
+    },
+    {
+      "id": "bottle_2",
+      "capacity": 4,
+      "waters": [
+        { "colorId": 3 },
+        { "colorId": 4 },
+        { "colorId": 1 },
+        { "colorId": 2 }
+      ],
+      "hasCap": false,
+      "bottleType": 1
+    },
+    {
+      "id": "bottle_3",
+      "capacity": 4,
+      "waters": [
+        { "colorId": 4 },
+        { "colorId": 1 },
+        { "colorId": 2 },
+        { "colorId": 3 }
+      ],
+      "hasCap": false,
+      "bottleType": 1
+    },
+    {
+      "id": "bottle_4",
+      "capacity": 4,
+      "waters": [],
+      "hasCap": false,
+      "bottleType": 1
+    },
+    {
+      "id": "bottle_5",
+      "capacity": 4,
+      "waters": [],
+      "hasCap": false,
+      "bottleType": 1
+    }
+  ],
+  "maxMoves": 30,
+  "difficulty": "medium"
+}
