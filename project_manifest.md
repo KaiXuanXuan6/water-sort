@@ -161,7 +161,90 @@
 
 ---
 
-## 4. 当前任务
+## 4. 编辑器 Inspector 绑定清单
+
+在 Cocos Creator 中为以下组件完成属性绑定后，游戏方可完整运行。脚本路径均为 `assets/scripts/` 下。
+
+### 4.1 RootViewSwitcher（Canvas）
+
+| 属性 | 类型 | 说明 |
+|------|------|------|
+| Home Root | Node | 拖入 HomeRoot 节点 |
+| Map Root | Node | 拖入 MapRoot 节点 |
+| Game Root | Node | 拖入 GameRoot 节点 |
+
+### 4.2 NavigationManager（NavigationManager 节点）
+
+无需绑定属性。
+
+### 4.3 HomeSceneController（HomeRoot）
+
+| 属性 | 类型 | 说明 |
+|------|------|------|
+| Start Button | Button | 开始按钮，进入地图 |
+| Shop Button | Button | 商店入口（可占位） |
+| Setting Button | Button | 设置按钮 |
+
+### 4.4 MapSceneController（MapRoot）
+
+| 属性 | 类型 | 说明 |
+|------|------|------|
+| Back Button | Button | 返回首页 |
+| Level Scroll View | ScrollView | 关卡列表滚动区域（可选） |
+| Level List Container | Node | 关卡按钮的父节点 |
+| Level Item Prefab | Node | 关卡按钮预制体（可选） |
+| Level Button Spacing | number | 无预制体时按钮间距，默认 90 |
+
+### 4.5 GameSceneController（GameRoot）
+
+| 属性 | 类型 | 说明 |
+|------|------|------|
+| Back Button | Button | 返回地图 |
+| Undo Button | Button | 撤销 |
+| Replay Button | Button | 重玩 |
+| Add Tube Button | Button | 加管（道具） |
+| Progress Bar | Node | 顶部进度条节点 |
+| Bottle Container | Node | 瓶子容器节点 |
+| Bottle Manager | BottleManager | 挂有 BottleManager 组件的节点 |
+| Prop Bar | Node | 道具栏容器（可选） |
+| Result Popup | Node | 挂有 ResultPopupController 的结算弹窗根节点 |
+
+### 4.6 BottleManager（GameRoot 下 BottleManager 节点）
+
+| 属性 | 类型 | 说明 |
+|------|------|------|
+| Bottle Prefab | Prefab | 瓶子预制体（可选；不绑定时代码动态创建） |
+| Bottle Container | Node | 与 GameSceneController 的 Bottle Container 为**同一节点** |
+| Bottle Spacing | number | 瓶子水平间距，默认 90 |
+| Start X | number | 瓶子起始 X，默认 0 |
+
+### 4.7 ResultPopupController（GameRoot 下 ResultPopup）
+
+| 属性 | 类型 | 说明 |
+|------|------|------|
+| Success Panel | Node | 成功时显示的面板 |
+| Fail Panel | Node | 失败时显示的面板 |
+| Next Level Button | Button | 下一关 |
+| Replay Button | Button | 重玩 |
+| Map Button | Button | 返回地图 |
+| Home Button | Button | 返回首页 |
+| Stars | Node[] | 星星节点数组（可选） |
+| Move Count Label | Label | 移动次数文案 |
+| Best Move Count Label | Label | 最少步数文案（可选） |
+| Level Num Label | Label | 关卡号文案（可选） |
+
+### 4.8 SettingPopupController（Canvas 下 SettingPopup，可选）
+
+| 属性 | 类型 | 说明 |
+|------|------|------|
+| Close Button | Button | 关闭弹窗 |
+| Sound Toggle | Toggle | 音效开关 |
+| Vibration Toggle | Toggle | 震动开关 |
+| Version Label | Label | 版本号显示 |
+
+---
+
+## 5. 当前任务
 
 ### 进行中
 - 在 Cocos 编辑器中配置 scene（HomeRoot/MapRoot/GameRoot + RootViewSwitcher + NavigationManager + 各 Controller 绑定）
