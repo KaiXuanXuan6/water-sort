@@ -150,12 +150,12 @@
 ## 3. 配置文件
 
 ### 3.1 关卡数据
-**目录**: `assets/config/`
+**目录**: `assets/resources/config/levels/`（仅维护 JSON，符合 DRY）
 
-- [x] 创建 levels/ 目录
-- [ ] level_001.json
+- [x] level_001.json
 - [ ] level_002.json
 - [ ] 更多关卡...
+- 说明：运行时通过 LevelDataLoader 从 resources 动态加载，无重复 TS 数据
 
 ### 3.2 游戏配置
 - [ ] game_config.json
@@ -168,15 +168,17 @@
 ## 4. 当前任务
 
 ### 进行中
-- 调试瓶子组件在 Cocos Creator 中的显示
 - 单场景过渡：逻辑场景（Home/Map/Game）统一映射到 `scene.scene`，后续再拆分真实场景资源
 
 ### 待办
 - 实现 WaterShader 水体特效（可选）
-- 连接 GameSceneController 与 BottleManager 的交互
-- 创建示例关卡 JSON 文件
+- （已完成）关卡从 resources/config/levels/*.json 动态加载，单一数据源
 
 ### 已完成
+- 连接 GameSceneController 与 BottleManager 的交互（引用、异步生成瓶子、点击回调、状态同步、选中状态）
+- 创建示例关卡 level_001.json；改为仅维护 JSON（LevelDataLoader 从 resources 加载，删除 BuiltinLevels 重复数据）
+- GameSceneController 接入 WaterSortEngine 与关卡数据（移动/撤销/胜利/重玩）
+- BottleManager 异步 createBottles、委托 BottleCreator、正确收集 BottleComponent
 - 更新 project_manifest.md 任务状态
 - 创建项目目录结构
 - 定义核心数据结构 (LevelConfig.ts)
