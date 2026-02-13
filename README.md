@@ -56,6 +56,14 @@ scene（场景根）
 |------|------------------------|------|
 | 关卡配置 | `config/levels/` | JSON，文件名与 levelId 一致，如 `level_001.json` |
 | 瓶子贴图 | `Bottles/` | 命名如 `{bottleType}_1`、`{bottleType}_2`（正常/选中） |
+| 背景图 | `Backgrounds/` | 编号背景（如 1.png～32.png），供场景/关卡背景使用 |
+| 首页与游戏内 UI | `HomeGame/` | Home.jpg、GamePage1/2.jpg、add_tube.png、undo.png、ReplayBtn.png 等 |
+| 地图页 | `Map/` | Map.jpg、MapLevelGray/Lit/Current.png、MapPath.png、Tab、HomeIcon 等 |
+| 结算页 | `Result/` | Victory.jpg、Clear.jpg、StarIcon、StarProgressBar、GreatBanner 等 |
+| 弹窗（设置/商店） | `Dialog/` | Settings.jpg、SettingsBg、CloseBtn、SoundBtn、MusicBtn、SettingsBtn 等 |
+| 通用 UI 素材库 | `UIResources/` | 按钮、图标、进度条、星星、面板、框等通用图；含原 Collection 图鉴用素材（Back、PanelBg、PageBtn、Selected 等），与 HomeGame/Dialog/Map/Result 互补 |
+
+**不迁入**：`sactx-xxx` 命名的文件为纹理图集（sprite atlas），由打包工具生成的合图，不能作为单个 UI 素材直接使用；只迁入可单独使用的源图，图集不迁移。
 
 ---
 

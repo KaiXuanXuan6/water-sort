@@ -165,6 +165,8 @@
 
 在 Cocos Creator 中为以下组件完成属性绑定后，游戏方可完整运行。脚本路径均为 `assets/scripts/` 下。
 
+**可用素材（按迁移批次更新）**：背景图在 `resources/Backgrounds/`（1.png～32.png），供场景/关卡背景使用，非组件绑定。通用 UI 素材（含图鉴/成就用按钮、面板、框等）统一在 `resources/UIResources/`；暂无组件绑定。
+
 ### 4.1 RootViewSwitcher（Canvas）
 
 | 属性 | 类型 | 说明 |
@@ -179,35 +181,35 @@
 
 ### 4.3 HomeSceneController（HomeRoot）
 
-| 属性 | 类型 | 说明 |
-|------|------|------|
-| Start Button | Button | 开始按钮，进入地图 |
-| Shop Button | Button | 商店入口（可占位） |
-| Setting Button | Button | 设置按钮 |
+| 属性 | 类型 | 说明 | 可用素材（resources/HomeGame/） |
+|------|------|------|-------------------------------|
+| Start Button | Button | 开始按钮，进入地图 | 页面底图 Home.jpg（HomeGame）；按钮图可结合 Dialog |
+| Shop Button | Button | 商店入口（可占位） | 同上 |
+| Setting Button | Button | 设置按钮 | resources/Dialog/SettingsBtn.png |
 
 ### 4.4 MapSceneController（MapRoot）
 
-| 属性 | 类型 | 说明 |
-|------|------|------|
-| Back Button | Button | 返回首页 |
-| Level Scroll View | ScrollView | 关卡列表滚动区域（可选） |
-| Level List Container | Node | 关卡按钮的父节点 |
-| Level Item Prefab | Node | 关卡按钮预制体（可选） |
-| Level Button Spacing | number | 无预制体时按钮间距，默认 90 |
+| 属性 | 类型 | 说明 | 可用素材（resources/Map/） |
+|------|------|------|---------------------------|
+| Back Button | Button | 返回首页 | HomeIcon.png |
+| Level Scroll View | ScrollView | 关卡列表滚动区域（可选） | 底图 Map.jpg |
+| Level List Container | Node | 关卡按钮的父节点 | — |
+| Level Item Prefab | Node | 关卡按钮预制体（可选） | MapLevelGray.png、MapLevelLit.png、MapLevelCurrent.png |
+| Level Button Spacing | number | 无预制体时按钮间距，默认 90 | — |
 
 ### 4.5 GameSceneController（GameRoot）
 
-| 属性 | 类型 | 说明 |
-|------|------|------|
-| Back Button | Button | 返回地图 |
-| Undo Button | Button | 撤销 |
-| Replay Button | Button | 重玩 |
-| Add Tube Button | Button | 加管（道具） |
-| Progress Bar | Node | 顶部进度条节点 |
-| Bottle Container | Node | 瓶子容器节点 |
-| Bottle Manager | BottleManager | 挂有 BottleManager 组件的节点 |
-| Prop Bar | Node | 道具栏容器（可选） |
-| Result Popup | Node | 挂有 ResultPopupController 的结算弹窗根节点 |
+| 属性 | 类型 | 说明 | 可用素材（resources/HomeGame/） |
+|------|------|------|-------------------------------|
+| Back Button | Button | 返回地图 | 可结合 Map/HomeIcon 等 |
+| Undo Button | Button | 撤销 | undo.png |
+| Replay Button | Button | 重玩 | ReplayBtn.png |
+| Add Tube Button | Button | 加管（道具） | add_tube.png |
+| Progress Bar | Node | 顶部进度条节点 | 背景可参考 GamePage1.jpg、GamePage2.jpg |
+| Bottle Container | Node | 瓶子容器节点 | 同上 |
+| Bottle Manager | BottleManager | 挂有 BottleManager 组件的节点 | — |
+| Prop Bar | Node | 道具栏容器（可选） | — |
+| Result Popup | Node | 挂有 ResultPopupController 的结算弹窗根节点 | — |
 
 ### 4.6 BottleManager（GameRoot 下 BottleManager 节点）
 
@@ -220,27 +222,27 @@
 
 ### 4.7 ResultPopupController（GameRoot 下 ResultPopup）
 
-| 属性 | 类型 | 说明 |
-|------|------|------|
-| Success Panel | Node | 成功时显示的面板 |
-| Fail Panel | Node | 失败时显示的面板 |
-| Next Level Button | Button | 下一关 |
-| Replay Button | Button | 重玩 |
-| Map Button | Button | 返回地图 |
-| Home Button | Button | 返回首页 |
-| Stars | Node[] | 星星节点数组（可选） |
-| Move Count Label | Label | 移动次数文案 |
-| Best Move Count Label | Label | 最少步数文案（可选） |
-| Level Num Label | Label | 关卡号文案（可选） |
+| 属性 | 类型 | 说明 | 可用素材（resources/Result/） |
+|------|------|------|------------------------------|
+| Success Panel | Node | 成功时显示的面板 | Victory.jpg、GreatBanner.png、StarIcon.png、StarProgressBar.png、StarProgressBarBg.png |
+| Fail Panel | Node | 失败时显示的面板 | Clear.jpg |
+| Next Level Button | Button | 下一关 | 可结合 Dialog 批按钮图 |
+| Replay Button | Button | 重玩 | 可结合 HomeGame/ReplayBtn 或 Dialog |
+| Map Button | Button | 返回地图 | 同上 |
+| Home Button | Button | 返回首页 | 同上 |
+| Stars | Node[] | 星星节点数组（可选） | StarIcon.png |
+| Move Count Label | Label | 移动次数文案 | 仅占位，无对应图 |
+| Best Move Count Label | Label | 最少步数文案（可选） | 仅占位 |
+| Level Num Label | Label | 关卡号文案（可选） | 仅占位 |
 
 ### 4.8 SettingPopupController（Canvas 下 SettingPopup，可选）
 
-| 属性 | 类型 | 说明 |
-|------|------|------|
-| Close Button | Button | 关闭弹窗 |
-| Sound Toggle | Toggle | 音效开关 |
-| Vibration Toggle | Toggle | 震动开关 |
-| Version Label | Label | 版本号显示 |
+| 属性 | 类型 | 说明 | 可用素材（resources/Dialog/） |
+|------|------|------|------------------------------|
+| Close Button | Button | 关闭弹窗 | CloseBtn.png |
+| Sound Toggle | Toggle | 音效开关 | SoundBtn.png |
+| Vibration Toggle | Toggle | 震动开关 | MusicBtn.png（或同风格图） |
+| Version Label | Label | 版本号显示 | 仅文案，无对应图 |
 
 ---
 
@@ -254,6 +256,12 @@
 - GameSceneController 拆分：可选抽出 LevelRunner/GamePlayCoordinator，负责关卡数据+引擎+回合胜负，Controller 只做 UI 绑定与导航（见架构评审）
 
 ### 已完成
+- UIResources 已迁至 resources；原 Collection/Elements 图鉴用素材已并入 UIResources 统一管理
+- 阶段5：Dialog 已迁至 resources（resources/Dialog/）
+- 阶段4：Result 已迁至 resources（resources/Result/）
+- 阶段3：Map 已迁至 resources（resources/Map/）
+- 阶段2：HomeGame 已迁至 resources（resources/HomeGame/）
+- 阶段1：Backgrounds 已迁至 resources（resources/Backgrounds/）
 - 单场景显隐：NavigationManager 同 asset 时不 loadScene，仅更新 currentScene 并发事件；RootViewSwitcher 监听 SCENE_LOAD_START 更新三块视图显隐
 - 失败检测：GameSceneController 在 tryPourWater 后调用 checkDefeat，失败时弹出 ResultPopup（data.success: false）
 - 删除未使用的 GameStateMachine 模块，场景与弹窗状态由 NavigationManager 统一负责

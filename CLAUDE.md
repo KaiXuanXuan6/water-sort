@@ -59,13 +59,13 @@ Engine location: `C:\ProgramData\cocos\editors\Creator\3.8.8\`
 
 ### UI Asset Categories
 
-- `Backgrounds/` - 32 numbered backgrounds (level themes)
-- `Bottles/` - 48 bottle types with dual states (_1.png, _2.png)
-- `Dialog/` - Shop, settings dialogs
-- `HomeGame/` - Home and gameplay UI (add_tube, undo, replay)
-- `Map/` - Level map elements (icons, paths, ribbons)
-- `Result/` - Victory/result screen assets
-- `Collection/` - Achievement/Collection UI
+- `Backgrounds/` - 32 张编号背景（关卡主题）
+- `Bottles/` - 48 种瓶子双状态贴图（_1.png, _2.png）
+- `Dialog/` - 商店、设置弹窗
+- `HomeGame/` - 首页与游戏内 UI（add_tube, undo, replay）
+- `Map/` - 地图页元素（图标、路径、丝带等）
+- `Result/` - 结算/胜利页素材
+- `UIResources/` - 通用 UI 素材（含图鉴/成就用按钮、面板、框等，统一管理）
 
 ## Development Rules
 
