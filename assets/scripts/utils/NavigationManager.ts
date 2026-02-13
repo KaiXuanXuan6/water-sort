@@ -42,6 +42,8 @@ export interface NavigationEventData {
     sceneName?: SceneName;
     popupName?: PopupName;
     error?: string;
+    /** 弹窗携带数据（如结算结果） */
+    data?: any;
 }
 
 /**
@@ -186,6 +188,8 @@ export class NavigationManager extends Component {
         }
 
         this._isTransitioning = true;
+        const prevScene = this._currentScene;
+        this._currentScene = sceneName;
 
         this.emit(NavigationEvent.SCENE_LOAD_START, {
             event: NavigationEvent.SCENE_LOAD_START,
@@ -195,6 +199,7 @@ export class NavigationManager extends Component {
         const sceneAssetName = this.resolveSceneAssetName(sceneName);
         director.loadScene(sceneAssetName, (err) => {
             if (err) {
+                this._currentScene = prevScene;
                 this._isTransitioning = false;
                 this.emit(NavigationEvent.SCENE_LOAD_FAILED, {
                     event: NavigationEvent.SCENE_LOAD_FAILED,
@@ -203,7 +208,6 @@ export class NavigationManager extends Component {
                 });
                 console.error(`[NavigationManager] 场景加载失败: ${err.message}`);
             } else {
-                this._currentScene = sceneName;
                 this._isTransitioning = false;
                 this.emit(NavigationEvent.SCENE_LOAD_COMPLETE, {
                     event: NavigationEvent.SCENE_LOAD_COMPLETE,
@@ -226,7 +230,8 @@ export class NavigationManager extends Component {
         this._currentPopup = popupName;
         this.emit(NavigationEvent.POPUP_OPEN, {
             event: NavigationEvent.POPUP_OPEN,
-            popupName
+            popupName,
+            data
         });
 
         console.log(`[NavigationManager] 打开弹窗: ${popupName}`);

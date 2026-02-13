@@ -56,12 +56,15 @@
   - [x] 定义水层接口 (WaterLayer)
   - [x] 关卡验证方法
 
-- [ ] UserProfile.ts
-  - [ ] 定义用户档案接口
-  - [ ] 当前关卡进度
-  - [ ] 已解锁关卡列表
-  - [ ] 道具数量统计
-  - [ ] 本地存储读写
+- [x] LevelDataLoader.ts
+  - [x] 从 resources 加载关卡 JSON（loadLevelFromResources）
+  - [x] 使用 LevelConfig 校验，单一数据源
+
+- [x] UserProfile.ts（占位）
+  - [x] 定义用户档案接口 (UserProfileData)
+  - [x] 当前关卡进度、已解锁关卡、道具数量
+  - [x] 内存读写 get/set、loadFromStorage/saveToStorage 占位
+  - [ ] 本地存储持久化（TODO）
 
 - [ ] GameState.ts
   - [ ] 定义游戏状态枚举
@@ -104,6 +107,9 @@
   - [x] 点击事件处理
   - [x] 选中状态动画
   - [x] 倒水动画
+
+- [x] SceneBootstrap.ts
+  - [x] 按 NavigationManager.currentScene 显隐 homeRoot/mapRoot/gameRoot
 
 - [ ] WaterShader.ts
   - [ ] 2D液体模拟shader
@@ -168,13 +174,17 @@
 ## 4. 当前任务
 
 ### 进行中
-- 单场景过渡：逻辑场景（Home/Map/Game）统一映射到 `scene.scene`，后续再拆分真实场景资源
+- 无
 
 ### 待办
 - 实现 WaterShader 水体特效（可选）
-- （已完成）关卡从 resources/config/levels/*.json 动态加载，单一数据源
+- 在 Cocos 编辑器中为 scene 配置 HomeRoot/MapRoot/GameRoot 并挂载 SceneBootstrap
 
 ### 已完成
+- 单场景显隐：SceneBootstrap 按 currentScene 显隐三块视图；NavigationManager 在 loadScene 前设置 currentScene
+- 地图页关卡按钮可点击：MapSceneController 动态创建 Button+Label，点击调用 gotoGame(levelId)
+- 结算弹窗实际显示：POPUP_OPEN 携带 data，GameSceneController 显示 resultPopup 并传参 ResultPopupController.show
+- UserProfile 占位：UserProfile.ts 接口与内存实现，MapSceneController.loadUserData 使用
 - 连接 GameSceneController 与 BottleManager 的交互（引用、异步生成瓶子、点击回调、状态同步、选中状态）
 - 创建示例关卡 level_001.json；改为仅维护 JSON（LevelDataLoader 从 resources 加载，删除 BuiltinLevels 重复数据）
 - GameSceneController 接入 WaterSortEngine 与关卡数据（移动/撤销/胜利/重玩）
