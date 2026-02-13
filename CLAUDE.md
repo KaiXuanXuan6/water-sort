@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Cocos Creator 3.8.8 water-sort puzzle game. Core logic layer (WaterSortEngine, GameStateMachine, LevelValidator) and presentation layer (BottleComponent, RootViewSwitcher) are implemented. Utilities (NavigationManager, BottleManager, AssetLoader, BottleCreator, LevelDataLoader) are complete. **Scene configuration in Cocos Creator Editor is pending**—HomeRoot/MapRoot/GameRoot and Controller bindings must be set up for the game to run.
+Cocos Creator 3.8.8 water-sort puzzle game. Core logic layer (WaterSortEngine, LevelValidator) and presentation layer (BottleComponent, RootViewSwitcher) are implemented. Utilities (NavigationManager, BottleManager, AssetLoader, BottleCreator, LevelDataLoader) are complete. Scene and popup state are managed by NavigationManager. **Scene configuration in Cocos Creator Editor is pending**—HomeRoot/MapRoot/GameRoot and Controller bindings must be set up for the game to run.
 
 ## Development Workflow
 
@@ -26,11 +26,16 @@ Engine location: `C:\ProgramData\cocos\editors\Creator\3.8.8\`
 - `temp/` - Build artifacts and TypeScript declarations
 - `settings/`, `profiles/`, `.creator/` - Cocos Creator configuration
 
+### State naming
+
+- **PlayState** (GameSceneController): 一局游戏内的玩法状态（idle, selected, pouring, paused, finished）
+- **SceneName** (NavigationManager): 应用级场景（HOME, MAP, GAME），由 NavigationManager.currentScene 与 RootViewSwitcher 显隐对应
+
 ### Core Architectural Principles (from .clauderules)
 
 1. **Logic/Presentation Separation**: Core sorting algorithm in pure TypeScript classes, no direct Cocos node coupling
 2. **Event-Driven**: Use custom events for layer communication, minimize strong references
-3. **State Machine**: Global state machine controls game states (Home, Map, Game, Result, Settings)
+3. **Navigation/Scene state**: NavigationManager controls current scene and popups; RootViewSwitcher shows/hides HomeRoot/MapRoot/GameRoot by listening to scene events
 4. **JSON Level Data**: All level configurations must be standard JSON format
 
 ### Scenes to Implement
@@ -47,8 +52,8 @@ Engine location: `C:\ProgramData\cocos\editors\Creator\3.8.8\`
 
 | Layer | Components |
 |-------|------------|
-| Data | LevelConfig, LevelDataLoader, UserProfile, GameState (optional refactor) |
-| Logic | WaterSortEngine (validation, undo), GameStateMachine, LevelValidator |
+| Data | LevelConfig (含 levelId/levelNum 转换), LevelDataLoader, UserProfile, ResultPayload (结算弹窗共用), GameState (optional refactor) |
+| Logic | WaterSortEngine (validation, undo), LevelValidator (关卡校验/可解性/编辑用，非运行时必需) |
 | Presentation | BottleComponent, RootViewSwitcher, WaterShader (optional, 2D liquid simulation) |
 | Utilities | NavigationManager, BottleManager, BottleCreator, AssetLoader; LevelEditor (TODO) |
 

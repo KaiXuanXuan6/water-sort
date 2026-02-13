@@ -64,17 +64,9 @@ export class BottleCreator {
         waterTransform.setContentSize(72, 100);
         bottleNode.addChild(waterContainer);
 
-        // 配置 BottleComponent
         bottleComp.init(config.index, config.data);
-        (bottleComp as any)['bottleSprite'] = sprite;
-        (bottleComp as any)['waterContainer'] = waterContainer;
-        (bottleComp as any)['bottleSpriteFrame'] = spriteFrame || null;
-        (bottleComp as any)['selectedSpriteFrame'] = selectedSpriteFrame || null;
-        (bottleComp as any)['_originalSpriteFrame'] = spriteFrame || null;
-        (bottleComp as any)['_bottleSpriteFrameLoaded'] = spriteFrame || null;
-        (bottleComp as any)['_selectedSpriteFrameLoaded'] = selectedSpriteFrame || null;
+        bottleComp.setRuntimeRefs(sprite, waterContainer, spriteFrame || null, selectedSpriteFrame);
 
-        // 设置位置
         if (config.position) {
             bottleNode.setPosition(config.position.x, config.position.y, 0);
         }
@@ -156,13 +148,13 @@ export class BottleCreator {
             waterTransform.setContentSize(72, 100);
             bottleNode.addChild(waterContainer);
 
-            // 配置 BottleComponent
             bottleComp.init(config.index, config.data);
-            (bottleComp as any)['bottleSprite'] = sprite;
-            (bottleComp as any)['waterContainer'] = waterContainer;
-            (bottleComp as any)['bottleSpriteFrame'] = config.spriteFrame;
-            (bottleComp as any)['selectedSpriteFrame'] = config.selectedSpriteFrame || null;
-            (bottleComp as any)['_originalSpriteFrame'] = config.spriteFrame;
+            bottleComp.setRuntimeRefs(
+                sprite,
+                waterContainer,
+                config.spriteFrame,
+                config.selectedSpriteFrame || null
+            );
 
             // 设置位置
             if (config.position) {

@@ -55,6 +55,7 @@
   - [x] 定义瓶子接口 (BottleState)
   - [x] 定义水层接口 (WaterLayer)
   - [x] 关卡验证方法
+  - [x] levelIdToLevelNum / levelNumToLevelId 统一关卡 ID 格式，供各 Controller 复用
 
 - [x] LevelDataLoader.ts
   - [x] 从 resources 加载关卡 JSON（loadLevelFromResources）
@@ -66,9 +67,8 @@
   - [x] 内存读写 get/set、loadFromStorage/saveToStorage
   - [x] 本地存储持久化（sys.localStorage）
 
-- [x] GameConfigLoader.ts
-  - [x] 从 resources 加载 game_config.json
-  - [x] 缓存单例
+- [x] ResultPayload.ts
+  - [x] 结算弹窗 payload 类型，GameSceneController 与 ResultPopupController 共用
 
 - [ ] GameState.ts（可选重构）
   - 当前状态分散在 GameSceneController 与 WaterSortEngine 中，功能已满足
@@ -86,19 +86,14 @@
   - [x] 合法移动检测 (hasValidMoves)
   - [x] 失败条件检测 (checkDefeat)
 
-- [x] GameStateMachine.ts
-  - [x] 状态定义: HOME, MAP, GAME, RESULT, SETTINGS
-  - [x] 状态转换方法 (changeState, popState)
-  - [x] 状态栈管理
-  - [x] 状态事件发布
-
-- [x] LevelValidator.ts
+- [x] LevelValidator.ts（关卡校验/编辑用）
   - [x] 关卡配置验证
   - [x] 颜色分布分析
   - [x] 关卡可解性验证 (BFS搜索)
   - [x] 最少步数估算
   - [x] 随机关卡生成
   - [x] 难度计算
+  - 说明：非运行时必需，未接入玩法；用于关卡编辑、校验或工具链
 
 ### 2.3 表现层 - 30%
 **目录**: `assets/scripts/ui/`
@@ -162,10 +157,7 @@
 - 说明：运行时通过 LevelDataLoader 从 resources 动态加载，无重复 TS 数据
 
 ### 3.2 游戏配置
-- [x] game_config.json
-  - [x] 最大步数
-  - [x] 空瓶数量
-  - [x] 道具初始数量
+- 已移除 GameConfigLoader；最大步数由关卡 JSON 决定，道具初始值由 UserProfile 默认值硬编码。
 
 ---
 
@@ -176,9 +168,16 @@
 
 ### 待办
 - 实现 WaterShader 水体特效（可选）
+- GameSceneController 拆分：可选抽出 LevelRunner/GamePlayCoordinator，负责关卡数据+引擎+回合胜负，Controller 只做 UI 绑定与导航（见架构评审）
 
 ### 已完成
-- 单场景显隐：RootViewSwitcher 按 currentScene 显隐三块视图；NavigationManager 在 loadScene 前设置 currentScene
+- 单场景显隐：NavigationManager 同 asset 时不 loadScene，仅更新 currentScene 并发事件；RootViewSwitcher 监听 SCENE_LOAD_START 更新三块视图显隐
+- 失败检测：GameSceneController 在 tryPourWater 后调用 checkDefeat，失败时弹出 ResultPopup（data.success: false）
+- 删除未使用的 GameStateMachine 模块，场景与弹窗状态由 NavigationManager 统一负责
+- 命名：GameSceneController 内 GameState 改为 PlayState（玩法状态），CLAUDE.md 补充状态命名说明
+- BottleComponent.setRuntimeRefs、BottleCreator 去掉 as any
+- cocos_creator.md：资源目录约定、单场景说明、失败结算说明、检查清单增项
+- 单场景显隐（原）：RootViewSwitcher 按 currentScene 显隐三块视图
 - 地图页关卡按钮可点击：MapSceneController 动态创建 Button+Label，点击调用 gotoGame(levelId)
 - 结算弹窗实际显示：POPUP_OPEN 携带 data，GameSceneController 显示 resultPopup 并传参 ResultPopupController.show
 - UserProfile 占位：UserProfile.ts 接口与内存实现，MapSceneController.loadUserData 使用
@@ -192,7 +191,6 @@
 - 创建全局导航管理器 (NavigationManager.ts)
 - 创建场景脚本骨架（HomeScene、MapScene、GameScene、ResultPop、SettingPop）
 - 实现核心排序算法 WaterSortEngine
-- 实现状态机 GameStateMachine
 - 实现关卡验证器 LevelValidator
 - 实现 BottleComponent 瓶子组件
 - 实现 AssetLoader 资源加载器
@@ -200,5 +198,5 @@
 - 复制 UI 素材到 resources 目录
 - 梳理项目状态并更新 project_manifest/cocos_creator/CLAUDE 文档
 - 新增 level_002.json、level_003.json 关卡
-- 实现 game_config.json 及 GameConfigLoader
+- game_config.json 曾配合 GameConfigLoader；已移除 Loader，初始值由 UserProfile 硬编码
 - UserProfile localStorage 持久化；GameSceneController.saveLevelProgress 联动

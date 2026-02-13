@@ -49,9 +49,27 @@ export interface LevelData {
 
 /**
  * 关卡配置类
- * 关卡数据的加载和验证
+ * 关卡数据的加载和验证、关卡 ID 与序号的转换（统一格式 level_001，避免各处重复解析）
  */
 export class LevelConfig {
+    /**
+     * 关卡 ID 转关卡序号（1-based）
+     * 如 level_001 -> 1，无效返回 1
+     */
+    static levelIdToLevelNum(levelId: string): number {
+        const match = levelId.match(/level_(\d+)/);
+        const num = match ? parseInt(match[1], 10) : 1;
+        return Math.max(1, num);
+    }
+
+    /**
+     * 关卡序号转关卡 ID
+     * 如 1 -> level_001
+     */
+    static levelNumToLevelId(num: number): string {
+        return `level_${String(Math.max(1, Math.floor(num))).padStart(3, '0')}`;
+    }
+
     /**
      * 从JSON加载关卡数据
      */
@@ -135,7 +153,7 @@ export class LevelConfig {
         }
 
         return {
-            id: `level_${String(level).padStart(3, '0')}`,
+            id: LevelConfig.levelNumToLevelId(level),
             level,
             bottles,
             maxMoves: -1,

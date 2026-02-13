@@ -174,7 +174,7 @@ export class NavigationManager extends Component {
     }
 
     /**
-     * 跳转到指定场景
+     * 跳转到指定场景，单场景模式
      */
     public gotoScene(sceneName: SceneName, data?: any): void {
         if (this._isTransitioning) {
@@ -187,17 +187,29 @@ export class NavigationManager extends Component {
             return;
         }
 
-        this._isTransitioning = true;
         const prevScene = this._currentScene;
-        this._currentScene = sceneName;
+        const targetAsset = this.resolveSceneAssetName(sceneName);
+        const currentAsset = this.resolveSceneAssetName(prevScene);
+        const isSingleScene = targetAsset === currentAsset;
 
+        this._currentScene = sceneName;
         this.emit(NavigationEvent.SCENE_LOAD_START, {
             event: NavigationEvent.SCENE_LOAD_START,
             sceneName
         });
 
-        const sceneAssetName = this.resolveSceneAssetName(sceneName);
-        director.loadScene(sceneAssetName, (err) => {
+        if (isSingleScene) {
+            this._isTransitioning = false;
+            this.emit(NavigationEvent.SCENE_LOAD_COMPLETE, {
+                event: NavigationEvent.SCENE_LOAD_COMPLETE,
+                sceneName
+            });
+            console.log(`[NavigationManager] 视图切换: ${prevScene} -> ${sceneName}`);
+            return;
+        }
+
+        this._isTransitioning = true;
+        director.loadScene(targetAsset, (err) => {
             if (err) {
                 this._currentScene = prevScene;
                 this._isTransitioning = false;
@@ -213,7 +225,7 @@ export class NavigationManager extends Component {
                     event: NavigationEvent.SCENE_LOAD_COMPLETE,
                     sceneName
                 });
-                console.log(`[NavigationManager] 场景加载完成: ${sceneName} -> ${sceneAssetName}`);
+                console.log(`[NavigationManager] 场景加载完成: ${sceneName} -> ${targetAsset}`);
             }
         });
     }

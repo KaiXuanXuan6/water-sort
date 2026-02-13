@@ -6,9 +6,24 @@
 
 ---
 
+## 0. 资源目录约定
+
+所有通过代码动态加载的资源必须放在 **assets/resources** 或其子目录下，否则 `resources.load` 会失败。
+
+| 用途 | 路径（相对 resources） | 说明 |
+|------|------------------------|------|
+| 关卡 JSON | `config/levels/` | 文件名与 levelId 一致，如 level_001.json |
+| 瓶子图片 | `Bottles/` | 命名如 `{bottleType}_1`、`{bottleType}_2`（正常/选中状态） |
+
+初始道具数等由 UserProfile 默认值硬编码，无需 game_config.json。
+
+---
+
 ## 1. 场景根与单场景显隐
 
 **场景文件**：`assets/scene.scene`（或当前主场景）
+
+**单场景说明**：本游戏为单场景，HomeRoot/MapRoot/GameRoot 通过显隐切换视图，**请勿再新建场景资产**。NavigationManager 在目标场景与当前场景映射到同一 asset 时仅更新 currentScene 并发出事件，由 RootViewSwitcher 监听并切换三个 Root 的 active。
 
 **当前现状**：场景中目前仅有 Canvas 及其子节点，需在 Canvas 下新增三个 Root 节点（HomeRoot、MapRoot、GameRoot）以实现单场景显隐切换。
 
@@ -104,7 +119,8 @@
 - 在 **GameRoot** 下建一节点（如 `ResultPopup`），作为结算弹窗根节点。
 - 挂载 **ResultPopupController**（`assets/scripts/ui/ResultPopupController.ts`）。
 - 将 **GameSceneController** 的 **Result Popup** 指向该节点。
-- 初始可将该节点设为 **active = false**，由代码在胜利时打开。
+- 初始可将该节点设为 **active = false**，由代码在胜利或失败时打开。
+- **失败结算**：当无合法移动且未胜利时，游戏会弹出失败结算，与成功共用本 ResultPopup，由传入的 `data.success` 区分；ResultPopupController 已根据 `data.success` 显示 Success Panel 或 Fail Panel。
 
 ### ResultPopupController 绑定
 
@@ -141,5 +157,6 @@
 - [ ] GameRoot 下挂载 GameSceneController，并绑定 Back、Undo、Replay、AddTube、Progress Bar、Bottle Container、Bottle Manager、Result Popup
 - [ ] 存在 BottleManager 节点，其 Bottle Container 与 GameSceneController 的 Bottle Container 一致
 - [ ] ResultPopup 节点挂载 ResultPopupController，并绑定成功/失败面板与按钮
+- [ ] 确认 assets/resources 下存在 config/levels/ 与 Bottles/ 资源目录，且路径与代码一致
 
-完成以上绑定后，运行时可实现：首页 → 地图 → 选择关卡进入游戏 → 胜利后弹出结算 → 下一关/返回地图/首页。
+完成以上绑定后，运行时可实现：首页 → 地图 → 选择关卡进入游戏 → 胜利或失败后弹出结算 → 下一关/重试/返回地图/首页。
