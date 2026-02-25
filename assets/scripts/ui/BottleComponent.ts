@@ -142,8 +142,7 @@ export class BottleComponent extends Component {
     // ========== 生命周期 ==========
 
     protected onLoad(): void {
-        // 保存原始位置
-        this._originalPosition.set(this.node.position);
+        // 原始位置在 playSelectAnimation 时按当前 node 位置捕获，避免早于布局导致错误
 
         // 自动创建必要的节点结构（如果未在编辑器中配置）
         this.setupDefaultNodes();
@@ -451,9 +450,10 @@ export class BottleComponent extends Component {
     }
 
     /**
-     * 播放选中动画
+     * 播放选中动画（在即将上移时捕获当前静止位置，避免依赖 onLoad/布局顺序）
      */
     public playSelectAnimation(): void {
+        this._originalPosition.set(this.node.position);
         const targetPos = new Vec3(
             this._originalPosition.x,
             this._originalPosition.y + this.selectedOffset,
