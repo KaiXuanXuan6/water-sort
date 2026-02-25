@@ -13,12 +13,6 @@ export class BottleManager extends Component {
     @property(Node)
     bottleContainer: Node | null = null;
 
-    @property({ tooltip: '瓶子水平间距' })
-    bottleSpacing: number = 90;
-
-    @property({ tooltip: '瓶子起始X坐标' })
-    startX: number = 0;
-
     private _bottleNodes: Node[] = [];
     private _bottleComponents: BottleComponent[] = [];
 
@@ -44,12 +38,10 @@ export class BottleManager extends Component {
         }
 
         this.clearBottles();
-        const positions = BottleCreator.calculateBottlePositions(bottleData.length, this.startX, this.bottleSpacing);
 
         if (this.bottlePrefab) {
             for (let i = 0; i < bottleData.length; i++) {
                 const bottleNode = instantiate(this.bottlePrefab);
-                bottleNode.setPosition(positions[i].x, positions[i].y, 0);
                 const comp = bottleNode.getComponent(BottleComponent);
                 if (comp) {
                     comp.init(i, bottleData[i]);
@@ -62,8 +54,7 @@ export class BottleManager extends Component {
             for (let i = 0; i < bottleData.length; i++) {
                 const bottleNode = await BottleCreator.createBottle({
                     index: i,
-                    data: bottleData[i],
-                    position: positions[i]
+                    data: bottleData[i]
                 });
                 this.bottleContainer.addChild(bottleNode);
                 this._bottleNodes.push(bottleNode);

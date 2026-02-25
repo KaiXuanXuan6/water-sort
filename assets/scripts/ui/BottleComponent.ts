@@ -64,8 +64,8 @@ export class BottleComponent extends Component {
     pourDuration: number = 0.3;
 
     /** 水层区域：1_2 内腔 BOTTLE_INNER_*，1_1 瓶身 BOTTLE_BODY_* */
-    private static readonly BOTTLE_INNER_WIDTH = 45;
-    private static readonly BOTTLE_INNER_HEIGHT = 180;
+    private static readonly BOTTLE_INNER_WIDTH = 42;
+    private static readonly BOTTLE_INNER_HEIGHT = 175;
     /** 瓶身尺寸（1_1 图 50×180，内腔 1_2 为 BOTTLE_INNER_*） */
     public static readonly BOTTLE_BODY_WIDTH = 50;
     public static readonly BOTTLE_BODY_HEIGHT = 180;
@@ -78,19 +78,19 @@ export class BottleComponent extends Component {
     private _waterLayerNodes: Node[] = [];
     private _originalPosition: Vec3 = new Vec3();
 
-    // 颜色配置（可在运行时修改）
+    // 颜色配置（可在运行时修改）- 高对比、易区分、偏糖果感
     private static colorConfigs: ColorConfig[] = [
-        { colorId: 1, color: new Color(255, 59, 48) },    // 红色
-        { colorId: 2, color: new Color(48, 209, 88) },    // 绿色
-        { colorId: 3, color: new Color(48, 144, 255) },    // 蓝色
-        { colorId: 4, color: new Color(255, 204, 0) },    // 黄色
-        { colorId: 5, color: new Color(175, 82, 222) },   // 紫色
-        { colorId: 6, color: new Color(255, 149, 0) },   // 橙色
-        { colorId: 7, color: new Color(0, 206, 209) },    // 青色
-        { colorId: 8, color: new Color(255, 105, 180) },   // 粉色
-        { colorId: 9, color: new Color(119, 136, 153) },  // 灰色
-        { colorId: 10, color: new Color(255, 255, 255) }, // 白色
-        { colorId: 11, color: new Color(139, 90, 43) },   // 褐色
+        { colorId: 1, color: new Color(255, 82, 82) },    // 珊瑚红
+        { colorId: 2, color: new Color(72, 219, 131) },   // 翠绿
+        { colorId: 3, color: new Color(78, 205, 255) },   // 天蓝
+        { colorId: 4, color: new Color(255, 218, 68) },   // 明黄
+        { colorId: 5, color: new Color(171, 104, 255) },  // 薰衣草紫
+        { colorId: 6, color: new Color(255, 159, 67) },   // 蜜橙
+        { colorId: 7, color: new Color(77, 218, 218) },   // 青绿
+        { colorId: 8, color: new Color(255, 121, 198) },  // 玫粉
+        { colorId: 9, color: new Color(162, 175, 191) },   // 雾灰
+        { colorId: 10, color: new Color(250, 250, 252) }, // 米白
+        { colorId: 11, color: new Color(180, 130, 90) },  // 暖棕
     ];
 
     // ========== 事件 ==========
@@ -302,7 +302,7 @@ export class BottleComponent extends Component {
         transform.setContentSize(cw, ch);
 
         const effectiveLayerHeight = ch / capacity;
-        const layerHeight = Math.max(1, effectiveLayerHeight - 2);
+        const layerHeight = Math.max(1, effectiveLayerHeight);
         const anchorY = transform.anchorPoint.y;
         const containerBottom = anchorY <= 0.25 ? 0 : -ch / 2;
 
@@ -330,7 +330,7 @@ export class BottleComponent extends Component {
         waterNode.name = `WaterLayer_${index}`;
         waterNode.active = true;
 
-        const yPos = containerBottom + (index + 0.5) * effectiveLayerHeight;
+        const yPos = Math.round(containerBottom + (index + 0.5) * effectiveLayerHeight);
         waterNode.setPosition(0, yPos);
 
         const graphics = waterNode.getComponent(Graphics);

@@ -161,28 +161,6 @@ export class BottleCreator {
     }
 
     /**
-     * 计算瓶子排列位置（水平居中排列）
-     */
-    public static calculateBottlePositions(
-        bottleCount: number,
-        startX: number = 0,
-        spacing: number = 90
-    ): { x: number; y: number }[] {
-        const positions: { x: number; y: number }[] = [];
-        const totalWidth = (bottleCount - 1) * spacing;
-        const offsetX = -totalWidth / 2;
-
-        for (let i = 0; i < bottleCount; i++) {
-            positions.push({
-                x: startX + offsetX + i * spacing,
-                y: 0
-            });
-        }
-
-        return positions;
-    }
-
-    /**
      * 预加载多个瓶子类型的图片
      */
     public static async preloadBottleTypes(types: number[]): Promise<void> {
