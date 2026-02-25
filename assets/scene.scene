@@ -4119,7 +4119,9 @@
     "mapRoot": {
       "__id__": 84
     },
-    "collectionRoot": null,
+    "collectionRoot": {
+      "__id__": 99
+    },
     "gameRoot": {
       "__id__": 87
     },
