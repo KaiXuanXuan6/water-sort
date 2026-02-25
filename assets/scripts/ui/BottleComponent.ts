@@ -63,13 +63,12 @@ export class BottleComponent extends Component {
     @property({ tooltip: '倾倒动画时长' })
     pourDuration: number = 0.3;
 
-    /** 水层高度（每层水的高度） */
-    @property({ tooltip: '单层水的高度' })
-    waterLayerHeight: number = 25;
-
-    /** 瓶子内边距（左右） */
-    @property({ tooltip: '水层距离瓶壁的距离' })
-    waterPadding: number = 4;
+    /** 水层区域：1_2 内腔 BOTTLE_INNER_*，1_1 瓶身 BOTTLE_BODY_* */
+    private static readonly BOTTLE_INNER_WIDTH = 45;
+    private static readonly BOTTLE_INNER_HEIGHT = 180;
+    /** 瓶身尺寸（1_1 图 50×180，内腔 1_2 为 BOTTLE_INNER_*） */
+    public static readonly BOTTLE_BODY_WIDTH = 50;
+    public static readonly BOTTLE_BODY_HEIGHT = 180;
 
     // ========== 内部状态 ==========
 
@@ -168,8 +167,8 @@ export class BottleComponent extends Component {
             const sprite = spriteNode.addComponent(Sprite);
             const transform = spriteNode.addComponent(UITransformType);
 
-            // 设置默认尺寸
-            transform.setContentSize(80, 120);
+            // 设置默认尺寸（与 1_1 瓶身图一致）
+            transform.setContentSize(BottleComponent.BOTTLE_BODY_WIDTH, BottleComponent.BOTTLE_BODY_HEIGHT);
 
             // 从数据中的 bottleType 加载瓶子图（仅代码创建瓶子时走此分支）
             if (this._bottleData?.bottleType) {
@@ -190,22 +189,20 @@ export class BottleComponent extends Component {
         if (!this.waterContainer) {
             this.waterContainer = new Node('WaterContainer');
             this.waterContainer.addComponent(UITransformType);
-            this.waterContainer.addComponent(Mask);
+            const mask = this.waterContainer.addComponent(Mask);
+            mask.type = 3; // SPRITE_STENCIL，用同节点上的 Sprite 作为遮罩形状
+            this.waterContainer.addComponent(Sprite); // 遮罩用 Sprite，spriteFrame 由 applyBottleType 设为 x_2
             this.node.addChild(this.waterContainer);
         }
 
-        // 如果水层容器没有 Mask，则添加
-        if (!this.waterContainer.getComponent(Mask)) {
-            const mask = this.waterContainer.addComponent(Mask);
-            mask.type = Mask.Type.RECT;
+        // 若已有 Mask 但非 SPRITE_STENCIL，不覆盖（保留预制体/编辑器配置）
+        const mask = this.waterContainer.getComponent(Mask);
+        if (mask && (mask.type as number) === 3 && !this.waterContainer.getComponent(Sprite)) {
+            this.waterContainer.addComponent(Sprite);
         }
     }
 
     protected start(): void {
-        // 如果有初始数据，渲染瓶子
-        if (this._bottleData) {
-            this.renderWaterLayers();
-        }
     }
 
     protected onDestroy(): void {
@@ -222,35 +219,41 @@ export class BottleComponent extends Component {
         this._bottleIndex = index;
         this._bottleData = data;
 
-        // 若关卡指定 bottleType，按类型加载瓶子图与水容器遮罩图（一份预制体多类型复用）
-        this.applyBottleType();
-
-        // 渲染水层
-        this.renderWaterLayers();
+        // 先加载瓶子图与 waterContainer 的 x_2 遮罩图，再渲染水层（保证 SPRITE_STENCIL 生效）
+        this.applyBottleType().then(() => {
+            if (this._bottleData) this.renderWaterLayers();
+        });
 
         console.log(`[BottleComponent] 初始化瓶子 ${index}:`, data);
     }
 
     /**
-     * 根据 data.bottleType 加载并设置瓶子 Sprite 与 WaterContainer 遮罩图（SPRITE_STENCIL 时用 x_2）
+     * 根据 data.bottleType 加载并设置瓶子 Sprite 与 WaterContainer 遮罩图（SPRITE_STENCIL 用 x_2）
+     * 返回 Promise，在 x_2 设置完成后再渲染水层，保证遮罩生效
      */
-    private applyBottleType(): void {
+    private applyBottleType(): Promise<void> {
         const typeId = this._bottleData?.bottleType;
-        if (typeId == null || !this.bottleSprite) return;
+        if (typeId == null || !this.bottleSprite) return Promise.resolve();
 
-        AssetLoader.loadBottleSprite(typeId, 1).then((frame) => {
+        const loadBottle = AssetLoader.loadBottleSprite(typeId, 1).then((frame) => {
             if (frame && this.bottleSprite) this.bottleSprite.spriteFrame = frame;
         });
 
-        if (!this.waterContainer) return;
+        if (!this.waterContainer) return loadBottle;
         const mask = this.waterContainer.getComponent(Mask);
-        if (!mask || (mask as any).type !== 3) return; // 3 = SPRITE_STENCIL
+        if (!mask || (mask.type as number) !== 3) return loadBottle; // 3 = SPRITE_STENCIL
         const stencilSprite = this.waterContainer.getComponent(Sprite);
-        if (stencilSprite) {
-            AssetLoader.loadBottleSprite(typeId, 2).then((frame) => {
-                if (frame && stencilSprite.isValid) stencilSprite.spriteFrame = frame;
-            });
-        }
+        if (!stencilSprite) return loadBottle;
+
+        return AssetLoader.loadBottleSprite(typeId, 2).then((frame) => {
+            if (frame && stencilSprite.isValid) {
+                stencilSprite.spriteFrame = frame;
+                const transform = this.waterContainer!.getComponent(UITransformType);
+                if (transform) {
+                    transform.setContentSize(BottleComponent.BOTTLE_INNER_WIDTH, BottleComponent.BOTTLE_INNER_HEIGHT);
+                }
+            }
+        });
     }
 
     /**
@@ -286,25 +289,25 @@ export class BottleComponent extends Component {
             return;
         }
 
-        // 清空现有水层
         this.clearWaterLayers();
 
-        // 渲染新水层
         const waters = this._bottleData.waters;
+        const capacity = this._bottleData.capacity;
         const transform = this.waterContainer.getComponent(UITransformType);
+        if (!transform) return;
 
-        if (transform) {
-            // 设置容器尺寸
-            const bottleWidth = this.getComponent(UITransformType)?.contentSize.width || 60;
-            const bottleHeight = this._bottleData.capacity * this.waterLayerHeight;
+        // 与 1_2 内腔素材尺寸一致（45x180）
+        const cw = BottleComponent.BOTTLE_INNER_WIDTH;
+        const ch = BottleComponent.BOTTLE_INNER_HEIGHT;
+        transform.setContentSize(cw, ch);
 
-            transform.setContentSize(bottleWidth - this.waterPadding * 2, bottleHeight);
-        }
+        const effectiveLayerHeight = ch / capacity;
+        const layerHeight = Math.max(1, effectiveLayerHeight - 2);
+        const anchorY = transform.anchorPoint.y;
+        const containerBottom = anchorY <= 0.25 ? 0 : -ch / 2;
 
-        // 从底到顶创建水层（index 0 是底层）
         for (let i = 0; i < waters.length; i++) {
-            const waterData = waters[i];
-            this.createWaterLayer(waterData, i, waters.length);
+            this.createWaterLayer(waters[i], i, waters.length, cw, layerHeight, containerBottom, effectiveLayerHeight);
         }
 
         console.log(`[BottleComponent] 渲染水层: ${waters.length} 层`);
@@ -313,24 +316,32 @@ export class BottleComponent extends Component {
     /**
      * 创建单个水层
      */
-    private createWaterLayer(waterData: WaterLayer, index: number, totalLayers: number): Node {
-        const waterNode = this.createDefaultWaterLayer();
+    private createWaterLayer(
+        waterData: WaterLayer,
+        index: number,
+        _totalLayers: number,
+        layerWidth: number,
+        layerHeight: number,
+        containerBottom: number,
+        effectiveLayerHeight: number
+    ): Node {
+        const waterNode = this.createDefaultWaterLayer(layerWidth, layerHeight);
 
         waterNode.name = `WaterLayer_${index}`;
         waterNode.active = true;
 
-        // 设置位置（从底部开始）
-        const yPos = index * this.waterLayerHeight;
+        const yPos = containerBottom + (index + 0.5) * effectiveLayerHeight;
         waterNode.setPosition(0, yPos);
 
-        // 设置颜色
-        const sprite = waterNode.getComponent(Sprite);
-        if (sprite) {
+        const graphics = waterNode.getComponent(Graphics);
+        if (graphics) {
             const color = this.getColorById(waterData.colorId);
-            sprite.color = color;
+            graphics.clear();
+            graphics.rect(-layerWidth / 2, -layerHeight / 2, layerWidth, layerHeight);
+            graphics.fillColor = color;
+            graphics.fill();
         }
 
-        // 添加到容器
         this.waterContainer!.addChild(waterNode);
         this._waterLayerNodes.push(waterNode);
 
@@ -338,18 +349,18 @@ export class BottleComponent extends Component {
     }
 
     /**
-     * 创建默认水层节点
+     * 创建默认水层节点（宽高与容器内单层一致，由调用方传入）
      */
-    private createDefaultWaterLayer(): Node {
+    private createDefaultWaterLayer(layerWidth: number, layerHeight: number): Node {
         const node = new Node('WaterLayer');
         const transform = node.addComponent(UITransformType);
-        const sprite = node.addComponent(Sprite);
+        const graphics = node.addComponent(Graphics);
 
-        // 设置尺寸
-        transform.setContentSize(50, this.waterLayerHeight - 2);
+        transform.setContentSize(layerWidth, layerHeight);
 
-        // 设置白色（会被颜色覆盖）
-        sprite.color = Color.WHITE;
+        graphics.rect(-layerWidth / 2, -layerHeight / 2, layerWidth, layerHeight);
+        graphics.fillColor = Color.WHITE;
+        graphics.fill();
 
         return node;
     }
@@ -371,7 +382,8 @@ export class BottleComponent extends Component {
         // 遮罩在 setupDefaultNodes 中创建时为 RECT；若在编辑器中设为 SPRITE_STENCIL 并指定 1_2 等图，此处不覆盖类型以保留编辑器配置
         if (this.waterContainer) {
             const mask = this.waterContainer.getComponent(Mask);
-            if (mask && mask.type === Mask.Type.ELLIPSE) {
+            if (mask && (mask.type as number) === 1) {
+                // 1 = ELLIPSE (deprecated 名为 GRAPHICS_ELLIPSE)，设置分段数
                 mask.segments = 64;
             }
         }

@@ -272,7 +272,7 @@
     },
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": 50,
+      "width": 45,
       "height": 180
     },
     "_anchorPoint": {
@@ -456,8 +456,6 @@
     },
     "selectedOffset": 30,
     "pourDuration": 0.3,
-    "waterLayerHeight": 25,
-    "waterPadding": 4,
     "_id": ""
   },
   {
@@ -473,6 +471,7 @@
       "__id__": 0
     },
     "fileId": "f7Uzrt/hBK5Lc5E7f0Ksdf",
+    "instance": null,
     "targetOverrides": null
   }
 ]

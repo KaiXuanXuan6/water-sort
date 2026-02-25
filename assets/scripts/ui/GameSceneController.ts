@@ -1,4 +1,4 @@
-import { _decorator, Component, Node, Button } from 'cc';
+import { _decorator, Component, Node, Button, Sprite, SpriteFrame, assetManager, Vec3, tween, Tween } from 'cc';
 import { NavigationManager, NavigationEvent, PopupName } from '../utils/NavigationManager';
 import { LevelData, LevelConfig } from '../data/LevelConfig';
 import { loadLevelFromResources } from '../data/LevelDataLoader';
@@ -62,6 +62,10 @@ export class GameSceneController extends Component {
     private _selectedBottleIndex: number = -1;
     private _moveCount: number = 0;
     private _maxMoves: number = -1;
+    private _wrongHintNode: Node | null = null;
+    private _wrongHintSpriteFrame: SpriteFrame | null = null;
+    private _correctHintNode: Node | null = null;
+    private _correctHintSpriteFrame: SpriteFrame | null = null;
 
     /**
      * 组件生命周期：加载
@@ -108,6 +112,13 @@ export class GameSceneController extends Component {
      * 组件生命周期：销毁
      */
     protected onDestroy(): void {
+        // 停止所有动画
+        if (this._wrongHintNode) {
+            Tween.stopAllByTarget(this._wrongHintNode);
+        }
+        if (this._correctHintNode) {
+            Tween.stopAllByTarget(this._correctHintNode);
+        }
         if (this._navManager) {
             this._navManager.removeListener(NavigationEvent.SCENE_LOAD_START, this.onSceneLoadStart);
             this._navManager.removeListener(NavigationEvent.POPUP_OPEN, this.onPopupOpen);
@@ -285,6 +296,10 @@ export class GameSceneController extends Component {
         const validation = this._engine.canMove(fromIndex, toIndex);
         if (!validation.can) {
             console.log('[GameSceneController] 无法倒水:', validation.reason);
+            const manager = this.bottleManager ?? this.node.getComponentInChildren(BottleManager);
+            manager?.getBottleComponent(fromIndex)?.setState(BottleStateEnum.IDLE);
+            manager?.getBottleComponent(toIndex)?.setState(BottleStateEnum.IDLE);
+            this.showWrongHintAboveBottle(fromIndex);
             this._selectedBottleIndex = -1;
             this._playState = PlayState.IDLE;
             return;
@@ -294,6 +309,7 @@ export class GameSceneController extends Component {
         if (result.success) {
             this._moveCount = this._engine.moveCount;
             this.syncBottlesFromEngine();
+            this.showCorrectHintAboveBottle(toIndex);
             this.updateProgressBar();
             this.checkWin();
             if (this._playState !== PlayState.FINISHED) {
@@ -305,6 +321,118 @@ export class GameSceneController extends Component {
         manager?.getBottleComponent(fromIndex)?.setState(BottleStateEnum.IDLE);
         this._selectedBottleIndex = -1;
         this._playState = PlayState.IDLE;
+    }
+
+    /**
+     * 在指定瓶子上方显示错误图标（无效倒水时），约 1.2 秒后自动隐藏
+     */
+    private showWrongHintAboveBottle(bottleIndex: number): void {
+        const manager = this.bottleManager ?? this.node.getComponentInChildren(BottleManager);
+        const bottleNode = manager?.getBottle(bottleIndex);
+        if (!bottleNode) return;
+
+        this.unschedule(this._hideWrongHint);
+
+        const ensureWrongHintNode = (spriteFrame: SpriteFrame | null): void => {
+            if (!this._wrongHintNode) {
+                this._wrongHintNode = new Node('WrongHint');
+                const sprite = this._wrongHintNode.addComponent(Sprite);
+                sprite.spriteFrame = spriteFrame;
+                const container = this.bottleContainer || this.node;
+                this._wrongHintNode.setParent(container);
+                this._wrongHintNode.active = false;
+            }
+            if (spriteFrame && this._wrongHintNode) {
+                const sp = this._wrongHintNode.getComponent(Sprite);
+                if (sp) sp.spriteFrame = spriteFrame;
+            }
+            this._wrongHintNode.setParent(bottleNode);
+            this._wrongHintNode.setPosition(new Vec3(0, 110, 0));
+            this._wrongHintNode.active = true;
+            // 弹跳动画：从 0 放大到 0.5 再回到 0.4
+            Tween.stopAllByTarget(this._wrongHintNode);
+            tween(this._wrongHintNode)
+                .to(0.1, { scale: new Vec3(0, 0, 1) })
+                .to(0.15, { scale: new Vec3(0.5, 0.5, 1) }, { easing: 'backOut' })
+                .to(0.1, { scale: new Vec3(0.4, 0.4, 1) })
+                .start();
+            this.scheduleOnce(this._hideWrongHint, 1.2);
+        };
+
+        if (this._wrongHintSpriteFrame != null) {
+            ensureWrongHintNode(this._wrongHintSpriteFrame);
+            return;
+        }
+        assetManager.resources.load('Game/wrong/spriteFrame', SpriteFrame, (err, spriteFrame) => {
+            if (err) {
+                console.warn('[GameSceneController] 加载错误图标失败', err);
+                return;
+            }
+            this._wrongHintSpriteFrame = spriteFrame;
+            ensureWrongHintNode(spriteFrame);
+        });
+    }
+
+    private _hideWrongHint(): void {
+        if (this._wrongHintNode) {
+            this._wrongHintNode.active = false;
+        }
+    }
+
+    private _hideCorrectHint(): void {
+        if (this._correctHintNode) {
+            this._correctHintNode.active = false;
+        }
+    }
+
+    /**
+     * 在指定瓶子上方显示正确图标（成功倒水时），约 1.2 秒后自动隐藏
+     */
+    private showCorrectHintAboveBottle(bottleIndex: number): void {
+        const manager = this.bottleManager ?? this.node.getComponentInChildren(BottleManager);
+        const bottleNode = manager?.getBottle(bottleIndex);
+        if (!bottleNode) return;
+
+        this.unschedule(this._hideCorrectHint);
+
+        const ensureCorrectHintNode = (spriteFrame: SpriteFrame | null): void => {
+            if (!this._correctHintNode) {
+                this._correctHintNode = new Node('CorrectHint');
+                const sprite = this._correctHintNode.addComponent(Sprite);
+                sprite.spriteFrame = spriteFrame;
+                const container = this.bottleContainer || this.node;
+                this._correctHintNode.setParent(container);
+                this._correctHintNode.active = false;
+            }
+            if (spriteFrame && this._correctHintNode) {
+                const sp = this._correctHintNode.getComponent(Sprite);
+                if (sp) sp.spriteFrame = spriteFrame;
+            }
+            this._correctHintNode.setParent(bottleNode);
+            this._correctHintNode.setPosition(new Vec3(0, 110, 0));
+            this._correctHintNode.active = true;
+            // 弹跳动画：从 0 放大到 0.5 再回到 0.4
+            Tween.stopAllByTarget(this._correctHintNode);
+            tween(this._correctHintNode)
+                .to(0.1, { scale: new Vec3(0, 0, 1) })
+                .to(0.15, { scale: new Vec3(0.5, 0.5, 1) }, { easing: 'backOut' })
+                .to(0.1, { scale: new Vec3(0.4, 0.4, 1) })
+                .start();
+            this.scheduleOnce(this._hideCorrectHint, 1.2);
+        };
+
+        if (this._correctHintSpriteFrame != null) {
+            ensureCorrectHintNode(this._correctHintSpriteFrame);
+            return;
+        }
+        assetManager.resources.load('Game/corrcet/spriteFrame', SpriteFrame, (err, spriteFrame) => {
+            if (err) {
+                console.warn('[GameSceneController] 加载正确图标失败', err);
+                return;
+            }
+            this._correctHintSpriteFrame = spriteFrame;
+            ensureCorrectHintNode(spriteFrame);
+        });
     }
 
     /**

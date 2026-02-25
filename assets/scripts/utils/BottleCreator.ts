@@ -1,4 +1,4 @@
-import { Node, Prefab, SpriteFrame, instantiate, Sprite, UITransform } from 'cc';
+import { Node, Prefab, SpriteFrame, instantiate, Sprite, UITransform, Mask } from 'cc';
 import { BottleState } from '../data/LevelConfig';
 import { BottleComponent } from '../ui/BottleComponent';
 import { AssetLoader } from './AssetLoader';
@@ -41,7 +41,7 @@ export class BottleCreator {
         const spriteNode = new Node('BottleSprite');
         const sprite = spriteNode.addComponent(Sprite);
         const transform = spriteNode.addComponent(UITransform);
-        transform.setContentSize(80, 120);
+        transform.setContentSize(BottleComponent.BOTTLE_BODY_WIDTH, BottleComponent.BOTTLE_BODY_HEIGHT);
 
         if (spriteFrame) {
             sprite.spriteFrame = spriteFrame;
@@ -49,14 +49,17 @@ export class BottleCreator {
 
         bottleNode.addChild(spriteNode);
 
-        // 创建水层容器
+        // 创建水层容器（1_2 内腔 45x180）
         const waterContainer = new Node('WaterContainer');
         const waterTransform = waterContainer.addComponent(UITransform);
-        waterTransform.setContentSize(72, 100);
+        waterTransform.setContentSize(45, 180);
+        const mask = waterContainer.addComponent(Mask);
+        mask.type = 3; // SPRITE_STENCIL
+        waterContainer.addComponent(Sprite);
         bottleNode.addChild(waterContainer);
 
-        bottleComp.init(config.index, config.data);
         bottleComp.setRuntimeRefs(sprite, waterContainer);
+        bottleComp.init(config.index, config.data);
 
         if (config.position) {
             bottleNode.setPosition(config.position.x, config.position.y, 0);
@@ -129,18 +132,21 @@ export class BottleCreator {
             const spriteNode = new Node('BottleSprite');
             const sprite = spriteNode.addComponent(Sprite);
             const transform = spriteNode.addComponent(UITransform);
-            transform.setContentSize(80, 120);
+            transform.setContentSize(BottleComponent.BOTTLE_BODY_WIDTH, BottleComponent.BOTTLE_BODY_HEIGHT);
             sprite.spriteFrame = config.spriteFrame;
             bottleNode.addChild(spriteNode);
 
-            // 创建水层容器
+            // 创建水层容器（1_2 内腔 45x180）
             const waterContainer = new Node('WaterContainer');
             const waterTransform = waterContainer.addComponent(UITransform);
-            waterTransform.setContentSize(72, 100);
+            waterTransform.setContentSize(45, 180);
+            const mask = waterContainer.addComponent(Mask);
+            mask.type = 3;
+            waterContainer.addComponent(Sprite);
             bottleNode.addChild(waterContainer);
 
-            bottleComp.init(config.index, config.data);
             bottleComp.setRuntimeRefs(sprite, waterContainer);
+            bottleComp.init(config.index, config.data);
 
             // 设置位置
             if (config.position) {

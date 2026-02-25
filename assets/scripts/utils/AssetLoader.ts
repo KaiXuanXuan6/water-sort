@@ -32,8 +32,7 @@ export class AssetLoader {
 
         // 加载资源
         const promise = new Promise<SpriteFrame | null>((resolve) => {
-            // 尝试从 resources 目录加载
-            const path = `Bottles/${bottleType}_${state}`;
+            const path = `Bottles/${bottleType}_${state}/spriteFrame`;
 
             assetManager.resources.load(path, SpriteFrame, (err, asset) => {
                 if (err) {
