@@ -1,4 +1,4 @@
-import { _decorator, Component, Node, Button, Label } from 'cc';
+import { _decorator, Component, Node, Button } from 'cc';
 import { NavigationManager, NavigationEvent } from '../utils/NavigationManager';
 import { loadFromStorage, getUnlockedLevel } from '../data/UserProfile';
 import { LevelConfig } from '../data/LevelConfig';
@@ -7,7 +7,7 @@ const { ccclass, property } = _decorator;
 
 /**
  * 首页控制器
- * 负责首页场景的初始化和交互逻辑
+ * 负责首页场景的初始化和交互逻辑；顶部标题（Level N）由 TopBarController 统一管理。
  */
 @ccclass('HomeSceneController')
 export class HomeSceneController extends Component {
@@ -17,12 +17,6 @@ export class HomeSceneController extends Component {
 
     @property(Button)
     shopButton: Button | null = null;
-
-    @property(Button)
-    settingButton: Button | null = null;
-
-    @property(Label)
-    levelLabel: Label | null = null;
 
     private _navManager: NavigationManager | null = null;
 
@@ -43,12 +37,8 @@ export class HomeSceneController extends Component {
         // 绑定按钮事件
         this.bindEvents();
 
-        // 同步用户进度并刷新 PlayButton 文案
+        // 同步用户进度（标题 Level N 由 TopBarController 根据场景统一更新）
         loadFromStorage();
-        const label = this.levelLabel || (this.startButton?.node.getComponentInChildren(Label) ?? null);
-        if (label) {
-            label.string = 'Level ' + getUnlockedLevel();
-        }
 
         // 监听导航事件
         this.setupNavigationListeners();
@@ -82,10 +72,6 @@ export class HomeSceneController extends Component {
         if (this.shopButton) {
             this.shopButton.node.on(Button.EventType.CLICK, this.onShopClick, this);
         }
-
-        if (this.settingButton) {
-            this.settingButton.node.on(Button.EventType.CLICK, this.onSettingClick, this);
-        }
     }
 
     /**
@@ -113,14 +99,6 @@ export class HomeSceneController extends Component {
     private onShopClick(): void {
         console.log('[HomeSceneController] 点击商店按钮（功能待实现）');
         // TODO: 实现商店功能
-    }
-
-    /**
-     * 设置按钮点击
-     */
-    private onSettingClick(): void {
-        console.log('[HomeSceneController] 点击设置按钮');
-        this._navManager?.showSettingsPopup();
     }
 
     /**

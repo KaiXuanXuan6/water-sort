@@ -30,9 +30,6 @@ export enum PlayState {
 export class GameSceneController extends Component {
     // UI 组件绑定
     @property(Button)
-    backButton: Button | null = null;
-
-    @property(Button)
     undoButton: Button | null = null;
 
     @property(Button)
@@ -122,10 +119,6 @@ export class GameSceneController extends Component {
      * 绑定按钮事件
      */
     private bindEvents(): void {
-        if (this.backButton) {
-            this.backButton.node.on(Button.EventType.CLICK, this.onBackClick, this);
-        }
-
         if (this.undoButton) {
             this.undoButton.node.on(Button.EventType.CLICK, this.onUndoClick, this);
         }
@@ -401,14 +394,6 @@ export class GameSceneController extends Component {
         if (ratio <= 0.6) return 3;
         if (ratio <= 0.8) return 2;
         return 1;
-    }
-
-    /**
-     * 返回按钮点击
-     */
-    private onBackClick(): void {
-        console.log('[GameSceneController] 点击返回按钮');
-        this._navManager?.back();
     }
 
     /**

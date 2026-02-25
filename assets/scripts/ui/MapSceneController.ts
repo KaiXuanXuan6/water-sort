@@ -23,9 +23,6 @@ interface LevelButtonData {
 @ccclass('MapSceneController')
 export class MapSceneController extends Component {
     // UI 组件绑定
-    @property(Button)
-    backButton: Button | null = null;
-
     @property(ScrollView)
     levelScrollView: ScrollView | null = null;
 
@@ -56,9 +53,6 @@ export class MapSceneController extends Component {
             return;
         }
 
-        // 绑定事件
-        this.bindEvents();
-
         // 加载用户数据
         this.loadUserData();
 
@@ -82,15 +76,6 @@ export class MapSceneController extends Component {
     protected onDestroy(): void {
         if (this._navManager) {
             this._navManager.removeListener(NavigationEvent.SCENE_LOAD_START, this.onSceneLoadStart);
-        }
-    }
-
-    /**
-     * 绑定按钮事件
-     */
-    private bindEvents(): void {
-        if (this.backButton) {
-            this.backButton.node.on(Button.EventType.CLICK, this.onBackClick, this);
         }
     }
 
@@ -190,14 +175,6 @@ export class MapSceneController extends Component {
         }
 
         this._navManager?.gotoGame(levelData.levelId);
-    }
-
-    /**
-     * 返回按钮点击
-     */
-    private onBackClick(): void {
-        console.log('[MapSceneController] 点击返回按钮');
-        this._navManager?.back();
     }
 
     /**
