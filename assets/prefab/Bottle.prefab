@@ -301,7 +301,7 @@
     "_type": 3,
     "_inverted": false,
     "_segments": 64,
-    "_alphaThreshold": 0.1,
+    "_alphaThreshold": 0.05,
     "_id": ""
   },
   {

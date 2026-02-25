@@ -39,7 +39,7 @@ interface ColorConfig {
  * 编辑器使用说明：
  * 1. 在场景中创建节点层级：Bottle → BottleSprite → WaterContainer
  * 2. BottleSprite 添加 Sprite 组件并设置图片
- * 3. WaterContainer 添加 Mask 组件（Type = RECT）
+ * 3. WaterContainer 添加 Mask 组件（Type = SPRITE_STENCIL）
  * 4. 将对应节点拖拽到组件属性
  * 5. 保存为预制体（水层由代码按纯色动态生成）
  */
@@ -88,7 +88,7 @@ export class BottleComponent extends Component {
         { colorId: 6, color: new Color(255, 159, 67) },   // 蜜橙
         { colorId: 7, color: new Color(77, 218, 218) },   // 青绿
         { colorId: 8, color: new Color(255, 121, 198) },  // 玫粉
-        { colorId: 9, color: new Color(162, 175, 191) },   // 雾灰
+        { colorId: 9, color: new Color(162, 175, 191) },  // 雾灰
         { colorId: 10, color: new Color(250, 250, 252) }, // 米白
         { colorId: 11, color: new Color(180, 130, 90) },  // 暖棕
     ];
