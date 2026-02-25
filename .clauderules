@@ -3,7 +3,7 @@
 ## 核心原则
 - **逻辑与表现分离**：核心排序算法 (Logic) 必须在纯 TypeScript 类中，禁止直接耦合 Cocos 节点。
 - **事件驱动**：层级间的通信优先使用自定义事件，减少强引用。
-- **场景与弹窗**：首页、地图、游戏中、结算等视图与弹窗由 NavigationManager 管理（currentScene + 事件），RootViewSwitcher 根据事件显隐三块根视图。
+- **场景与弹窗**：首页、地图、收集、游戏中、结算等视图与弹窗由 NavigationManager 管理（currentScene + 事件），RootViewSwitcher 根据事件显隐四块根视图（HomeRoot/MapRoot/CollectionRoot/GameRoot），BottomBar 在游戏页隐藏。
 - **防钻牛角尖**：单次回复仅专注于一个子模块的框架。如果发现逻辑过于复杂，先写接口声明（Interface），不要急于实现具体算法。
 
 ## 倒水排序游戏核心规则
@@ -26,8 +26,12 @@ assets/
 │   ├── logic/          # 逻辑层（算法）
 │   ├── ui/             # UI组件层
 │   └── utils/          # 工具类
-├── config/             # JSON关卡数据
-├── scene/              # 场景文件
+├── resources/          # 运行时动态加载
+│   ├── config/levels/  # 关卡 JSON（LevelDataLoader 单一数据源）
+│   ├── Backgrounds/    # 背景图
+│   ├── Bottles/        # 瓶子贴图
+│   ├── Dialog/ Map/ Game/ TopBar/ BottomBar/ UIResources/  # UI 素材
+├── scene/              # 场景文件（当前主场景为 scene.scene）
 └── prefab/             # 预制体
 ```
 
@@ -41,7 +45,7 @@ assets/
 1. **数据层优先**：先定义 LevelConfig、UserProfile 接口和数据结构
 2. **逻辑层实现**：实现 WaterSortEngine 核心算法和验证逻辑
 3. **表现层对接**：创建 BottleComponent、WaterShader 等表现组件
-4. **场景编排**：在 Cocos Creator 中组装场景，绑定 NavigationManager、RootViewSwitcher 与各 Controller
+4. **场景编排**：在 Cocos Creator 中组装场景，绑定 NavigationManager、RootViewSwitcher、TopBarController 与各页 Controller；组件绑定清单见 project_manifest.md §4
 5. **调试测试**：测试各个关卡的可玩性和正确性
 
 ## 交互规范

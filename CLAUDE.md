@@ -22,9 +22,9 @@ Engine location: `C:\ProgramData\cocos\editors\Creator\3.8.8\`
 
 - `assets/UI/` - All game UI artwork organized by category
 - `assets/scripts/` - TypeScript scripts (data, logic, ui, utils)
-- `assets/resources/` - Runtime-loaded assets (config/levels, Backgrounds, Bottles, etc.)
+- `assets/resources/` - Runtime-loaded assets：`config/levels/` 关卡 JSON，`Backgrounds/`、`Bottles/`、`Dialog/`、`Map/`、`Game/`、`TopBar/`、`BottomBar/`、`UIResources/` 等 UI 素材
 - `assets/scene.scene` - Main game scene (1280x720, 2D orthographic camera); all pages use unified Background
-- `step.md` - Step-by-step Cocos Editor setup (BottleManager, bottle prefab, BottomBar binding)
+- `step.md` - Step-by-step Cocos Editor setup（BottleManager、瓶子预制体、BottomBar 绑定；若仓库中无此文件则按 project_manifest.md §4 与本文档在编辑器中配置）
 - `library/` - Cached compiled assets (hashed directory structure)
 - `temp/` - Build artifacts and TypeScript declarations
 - `settings/`, `profiles/`, `.creator/` - Cocos Creator configuration
@@ -38,7 +38,7 @@ Engine location: `C:\ProgramData\cocos\editors\Creator\3.8.8\`
 
 1. **Logic/Presentation Separation**: Core sorting algorithm in pure TypeScript classes, no direct Cocos node coupling
 2. **Event-Driven**: Use custom events for layer communication, minimize strong references
-3. **Navigation/Scene state**: NavigationManager controls current scene and popups; RootViewSwitcher shows/hides HomeRoot/MapRoot/GameRoot and BottomBar (hidden on GAME) by listening to scene events
+3. **Navigation/Scene state**: NavigationManager controls current scene and popups; RootViewSwitcher shows/hides HomeRoot/MapRoot/CollectionRoot/GameRoot and BottomBar (hidden on GAME) by listening to scene events
 4. **JSON Level Data**: All level configurations must be standard JSON format
 
 ### Scenes to Implement
@@ -57,7 +57,7 @@ Engine location: `C:\ProgramData\cocos\editors\Creator\3.8.8\`
 |-------|------------|
 | Data | LevelConfig (含 levelId/levelNum 转换), LevelDataLoader, UserProfile, ResultPayload (结算弹窗共用), GameState (optional refactor) |
 | Logic | WaterSortEngine (validation, undo), LevelValidator (关卡校验/可解性/编辑用，非运行时必需) |
-| Presentation | BottleComponent, RootViewSwitcher, WaterShader (optional, 2D liquid simulation) |
+| Presentation | BottleComponent, RootViewSwitcher, TopBarController（返回/设置/标题）, WaterShader (optional, 2D liquid simulation) |
 | Utilities | NavigationManager, BottleManager, BottleCreator, AssetLoader; LevelEditor (TODO) |
 
 ### UI Asset Categories

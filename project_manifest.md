@@ -116,6 +116,10 @@
   - [x] 按 NavigationManager.currentScene 显隐 homeRoot/mapRoot/collectionRoot/gameRoot
   - [x] 进入游戏页时隐藏 BottomBar，首页/地图页/收集页时显示（需绑定 bottomBar 节点）
 
+- [x] TopBarController.ts
+  - [x] 统一管理返回按钮、设置按钮、标题 Label；按场景显隐返回键、更新标题文案
+  - [x] 监听 SCENE_LOAD_START，调用 back() / showSettingsPopup()
+
 - [ ] WaterShader.ts
   - [ ] 2D液体模拟shader
   - [ ] 水面波动效果
@@ -189,6 +193,14 @@
 
 无需绑定属性。
 
+### 4.2.1 TopBarController（Canvas 或共用 TopBar 节点）
+
+| 属性 | 类型 | 说明 | 可用素材 |
+|------|------|------|----------|
+| Back Button | Button | 返回上一级（按场景显隐） | resources/Map/HomeIcon.png 等 |
+| Setting Button | Button | 打开设置弹窗 | resources/TopBar/setting.png、resources/Dialog/SettingsBtn.png |
+| Title Label | Label | 当前页标题文案（按场景更新） | 仅文案 |
+
 ### 4.3 HomeSceneController（HomeRoot）
 
 | 属性 | 类型 | 说明 | 可用素材（resources/HomeGame/） |
@@ -235,10 +247,10 @@
 
 | 属性 | 类型 | 说明 |
 |------|------|------|
-| Bottle Prefab | Prefab | 瓶子预制体（可选；不绑定时代码动态创建） |
+| Bottle Prefab | Prefab | 瓶子预制体（可选；不绑定时由 BottleCreator 动态创建） |
 | Bottle Container | Node | 与 GameSceneController 的 Bottle Container 为**同一节点** |
-| Bottle Spacing | number | 瓶子水平间距，默认 90 |
-| Start X | number | 瓶子起始 X，默认 0 |
+| Bottle Spacing | number | 瓶子水平间距（当前代码内为常量 40，若需可配置可后续加 @property） |
+| Start X | number | 瓶子起始 X（当前代码为自动居中布局，无 Start X 属性） |
 
 ### 4.7 ResultPopupController（GameRoot 下 ResultPopup）
 
@@ -263,11 +275,6 @@
 | Sound Toggle | Toggle | 音效开关 | SoundBtn.png |
 | Vibration Toggle | Toggle | 震动开关 | MusicBtn.png（或同风格图） |
 | Version Label | Label | 版本号显示 | 仅文案，无对应图 |
-
-### 4.9 游戏页 BottleManager 与瓶子预制体
-
-详细布置步骤见 **[step.md](step.md)**（含收集页 CollectionRoot 创建与绑定、GameRoot 节点结构、瓶子 Prefab、BottleManager/GameSceneController 绑定、RootViewSwitcher 绑定 BottomBar；收集页步骤优先于游戏页）。
-
 ---
 
 ## 5. 当前任务
