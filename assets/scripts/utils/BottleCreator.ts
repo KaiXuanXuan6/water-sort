@@ -11,10 +11,8 @@ export interface BottleCreateConfig {
     index: number;
     /** 瓶子数据 */
     data: BottleState;
-    /** 瓶子图片资源（可选，不提供则自动加载） */
+    /** 瓶子图片资源 */
     spriteFrame?: SpriteFrame;
-    /** 选中状态图片（可选） */
-    selectedSpriteFrame?: SpriteFrame;
     /** 瓶子位置 */
     position?: { x: number; y: number };
     /** 水层颜色映射表 */
@@ -35,15 +33,8 @@ export class BottleCreator {
 
         // 自动加载瓶子图片（如果没有提供）
         let spriteFrame = config.spriteFrame;
-        let selectedSpriteFrame = config.selectedSpriteFrame || null;
-
         if (!spriteFrame && config.data.bottleType) {
-            const [normal, selected] = await Promise.all([
-                AssetLoader.loadBottleSprite(config.data.bottleType, 1),
-                AssetLoader.loadBottleSprite(config.data.bottleType, 2)
-            ]);
-            spriteFrame = normal;
-            selectedSpriteFrame = selected;
+            spriteFrame = await AssetLoader.loadBottleSprite(config.data.bottleType, 1);
         }
 
         // 创建瓶子 Sprite
@@ -65,7 +56,7 @@ export class BottleCreator {
         bottleNode.addChild(waterContainer);
 
         bottleComp.init(config.index, config.data);
-        bottleComp.setRuntimeRefs(sprite, waterContainer, spriteFrame || null, selectedSpriteFrame);
+        bottleComp.setRuntimeRefs(sprite, waterContainer);
 
         if (config.position) {
             bottleNode.setPosition(config.position.x, config.position.y, 0);
@@ -149,12 +140,7 @@ export class BottleCreator {
             bottleNode.addChild(waterContainer);
 
             bottleComp.init(config.index, config.data);
-            bottleComp.setRuntimeRefs(
-                sprite,
-                waterContainer,
-                config.spriteFrame,
-                config.selectedSpriteFrame || null
-            );
+            bottleComp.setRuntimeRefs(sprite, waterContainer);
 
             // 设置位置
             if (config.position) {

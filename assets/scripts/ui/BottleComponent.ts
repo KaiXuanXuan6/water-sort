@@ -1,4 +1,4 @@
-import { _decorator, Component, Sprite, UITransform, Color, Vec3, tween, Vec2, Node, EventTouch, Mask, Graphics, UITransform as UITransformType, SpriteFrame } from 'cc';
+import { _decorator, Component, Sprite, UITransform, Color, Vec3, tween, Vec2, Node, EventTouch, Mask, Graphics, UITransform as UITransformType } from 'cc';
 import { BottleState, WaterLayer } from '../data/LevelConfig';
 import { AssetLoader } from '../utils/AssetLoader';
 
@@ -37,11 +37,11 @@ interface ColorConfig {
  * 负责瓶子的显示、交互和动画
  *
  * 编辑器使用说明：
- * 1. 在场景中创建节点层级：Bottle → BottleSprite → WaterContainer → WaterLayer
+ * 1. 在场景中创建节点层级：Bottle → BottleSprite → WaterContainer
  * 2. BottleSprite 添加 Sprite 组件并设置图片
  * 3. WaterContainer 添加 Mask 组件（Type = RECT）
  * 4. 将对应节点拖拽到组件属性
- * 5. 保存为预制体
+ * 5. 保存为预制体（水层由代码按纯色动态生成）
  */
 @ccclass('BottleComponent')
 export class BottleComponent extends Component {
@@ -51,25 +51,9 @@ export class BottleComponent extends Component {
     @property(Sprite)
     bottleSprite: Sprite | null = null;
 
-    /** 瓶盖节点（可选） */
-    @property(Node)
-    capNode: Node | null = null;
-
     /** 水层容器节点（用于放置水层） */
     @property(Node)
     waterContainer: Node | null = null;
-
-    /** 水层预制体节点（用于复制） */
-    @property(Node)
-    waterLayerPrefab: Node | null = null;
-
-    /** 瓶子图片资源（从编辑器选择） */
-    @property(SpriteFrame)
-    bottleSpriteFrame: SpriteFrame | null = null;
-
-    /** 选中状态图片（可选） */
-    @property(SpriteFrame)
-    selectedSpriteFrame: SpriteFrame | null = null;
 
     /** 选中状态偏移量（Y轴） */
     @property({ tooltip: '选中时向上移动的距离' })
@@ -94,9 +78,6 @@ export class BottleComponent extends Component {
     private _bottleData: BottleState | null = null;
     private _waterLayerNodes: Node[] = [];
     private _originalPosition: Vec3 = new Vec3();
-    private _originalSpriteFrame: SpriteFrame | null = null; // 保存原始 SpriteFrame
-    private _selectedSpriteFrameLoaded: SpriteFrame | null = null; // 加载的选中状态图片
-    private _bottleSpriteFrameLoaded: SpriteFrame | null = null; // 加载的正常状态图片
 
     // 颜色配置（可在运行时修改）
     private static colorConfigs: ColorConfig[] = [
@@ -190,35 +171,17 @@ export class BottleComponent extends Component {
             // 设置默认尺寸
             transform.setContentSize(80, 120);
 
-            // 如果编辑器配置了 SpriteFrame，直接使用
-            if (this.bottleSpriteFrame) {
-                sprite.spriteFrame = this.bottleSpriteFrame;
-                this._originalSpriteFrame = this.bottleSpriteFrame;
-            }
-            // 否则尝试从数据中的 bottleType 自动加载
-            else if (this._bottleData?.bottleType) {
+            // 从数据中的 bottleType 加载瓶子图（仅代码创建瓶子时走此分支）
+            if (this._bottleData?.bottleType) {
                 const loadedFrame = await AssetLoader.loadBottleSprite(
                     this._bottleData.bottleType,
                     1
                 );
                 if (loadedFrame) {
                     sprite.spriteFrame = loadedFrame;
-                    this._originalSpriteFrame = loadedFrame;
-                    this._bottleSpriteFrameLoaded = loadedFrame;
-
-                    // 同时加载选中状态图片
-                    const selectedFrame = await AssetLoader.loadBottleSprite(
-                        this._bottleData.bottleType,
-                        2
-                    );
-                    if (selectedFrame) {
-                        this._selectedSpriteFrameLoaded = selectedFrame;
-                        this.selectedSpriteFrame = selectedFrame;
-                    }
                 }
             }
 
-            // 添加到节点
             this.node.addChild(spriteNode);
             this.bottleSprite = sprite;
         }
@@ -259,15 +222,35 @@ export class BottleComponent extends Component {
         this._bottleIndex = index;
         this._bottleData = data;
 
-        // 设置瓶盖显示
-        if (this.capNode) {
-            this.capNode.active = data.hasCap;
-        }
+        // 若关卡指定 bottleType，按类型加载瓶子图与水容器遮罩图（一份预制体多类型复用）
+        this.applyBottleType();
 
         // 渲染水层
         this.renderWaterLayers();
 
         console.log(`[BottleComponent] 初始化瓶子 ${index}:`, data);
+    }
+
+    /**
+     * 根据 data.bottleType 加载并设置瓶子 Sprite 与 WaterContainer 遮罩图（SPRITE_STENCIL 时用 x_2）
+     */
+    private applyBottleType(): void {
+        const typeId = this._bottleData?.bottleType;
+        if (typeId == null || !this.bottleSprite) return;
+
+        AssetLoader.loadBottleSprite(typeId, 1).then((frame) => {
+            if (frame && this.bottleSprite) this.bottleSprite.spriteFrame = frame;
+        });
+
+        if (!this.waterContainer) return;
+        const mask = this.waterContainer.getComponent(Mask);
+        if (!mask || (mask as any).type !== 3) return; // 3 = SPRITE_STENCIL
+        const stencilSprite = this.waterContainer.getComponent(Sprite);
+        if (stencilSprite) {
+            AssetLoader.loadBottleSprite(typeId, 2).then((frame) => {
+                if (frame && stencilSprite.isValid) stencilSprite.spriteFrame = frame;
+            });
+        }
     }
 
     /**
@@ -281,19 +264,9 @@ export class BottleComponent extends Component {
     /**
      * 运行时注入 Sprite / 水层容器 / 图片引用（供 BottleCreator 等动态创建时使用，避免 as any 写 @property）
      */
-    public setRuntimeRefs(
-        sprite: Sprite,
-        waterContainer: Node,
-        bottleSpriteFrame: SpriteFrame | null,
-        selectedSpriteFrame: SpriteFrame | null
-    ): void {
+    public setRuntimeRefs(sprite: Sprite, waterContainer: Node): void {
         this.bottleSprite = sprite;
         this.waterContainer = waterContainer;
-        this.bottleSpriteFrame = bottleSpriteFrame;
-        this.selectedSpriteFrame = selectedSpriteFrame;
-        this._originalSpriteFrame = bottleSpriteFrame;
-        this._bottleSpriteFrameLoaded = bottleSpriteFrame;
-        this._selectedSpriteFrameLoaded = selectedSpriteFrame;
     }
 
     /**
@@ -341,9 +314,7 @@ export class BottleComponent extends Component {
      * 创建单个水层
      */
     private createWaterLayer(waterData: WaterLayer, index: number, totalLayers: number): Node {
-        const waterNode = this.waterLayerPrefab ?
-            this.waterLayerPrefab.clone() :
-            this.createDefaultWaterLayer();
+        const waterNode = this.createDefaultWaterLayer();
 
         waterNode.name = `WaterLayer_${index}`;
         waterNode.active = true;
@@ -397,19 +368,11 @@ export class BottleComponent extends Component {
      * 设置瓶子遮罩
      */
     private setupBottleMask(): void {
-        // 遮罩已在 setupDefaultNodes 中创建
-        // 这里可以配置遮罩的参数
+        // 遮罩在 setupDefaultNodes 中创建时为 RECT；若在编辑器中设为 SPRITE_STENCIL 并指定 1_2 等图，此处不覆盖类型以保留编辑器配置
         if (this.waterContainer) {
             const mask = this.waterContainer.getComponent(Mask);
-            if (mask) {
-                mask.type = Mask.Type.RECT;
-
-                // 设置遮罩边界
-                const transform = this.waterContainer.getComponent(UITransformType);
-                if (transform) {
-                    const size = transform.contentSize;
-                    mask.segments = 64;
-                }
+            if (mask && mask.type === Mask.Type.ELLIPSE) {
+                mask.segments = 64;
             }
         }
     }
@@ -479,11 +442,6 @@ export class BottleComponent extends Component {
      * 播放选中动画
      */
     public playSelectAnimation(): void {
-        // 如果有选中状态的 SpriteFrame，则切换
-        if (this.selectedSpriteFrame && this.bottleSprite) {
-            this.bottleSprite.spriteFrame = this.selectedSpriteFrame;
-        }
-
         const targetPos = new Vec3(
             this._originalPosition.x,
             this._originalPosition.y + this.selectedOffset,
@@ -499,11 +457,6 @@ export class BottleComponent extends Component {
      * 播放空闲动画
      */
     public playIdleAnimation(): void {
-        // 恢复原始 SpriteFrame
-        if (this._originalSpriteFrame && this.bottleSprite) {
-            this.bottleSprite.spriteFrame = this._originalSpriteFrame;
-        }
-
         tween(this.node)
             .to(0.2, { position: this._originalPosition }, { easing: 'sineOut' })
             .start();
@@ -547,14 +500,6 @@ export class BottleComponent extends Component {
             .to(this.pourDuration * 0.5, { worldPosition: midPos }, { easing: 'sineOut' })
             .to(this.pourDuration * 0.5, { worldPosition: targetWorldPos }, { easing: 'sineIn' })
             .call(() => {
-                // 倾倒结束，恢复原始 SpriteFrame
-                if (this._originalSpriteFrame && this.bottleSprite) {
-                    this.bottleSprite.spriteFrame = this._originalSpriteFrame;
-                }
-                if (targetBottle._originalSpriteFrame && targetBottle.bottleSprite) {
-                    targetBottle.bottleSprite.spriteFrame = targetBottle._originalSpriteFrame;
-                }
-
                 this.setState(BottleStateEnum.IDLE, false);
                 targetBottle.setState(BottleStateEnum.IDLE, false);
 

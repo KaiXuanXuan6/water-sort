@@ -136,16 +136,6 @@ export class WaterSortEngine {
         const fromBottle = bottles[fromIndex];
         const toBottle = bottles[toIndex];
 
-        // 检查源瓶子是否有瓶盖
-        if (fromBottle.hasCap) {
-            return { can: false, reason: '源瓶子有瓶盖，无法倒出' };
-        }
-
-        // 检查目标瓶子是否有瓶盖
-        if (toBottle.hasCap) {
-            return { can: false, reason: '目标瓶子有瓶盖，无法倒入' };
-        }
-
         // 源瓶子必须非空
         if (fromBottle.waters.length === 0) {
             return { can: false, reason: '源瓶子为空' };

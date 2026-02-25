@@ -20,8 +20,6 @@ export interface BottleState {
     capacity: number;
     /** 水层数据（从底到顶） */
     waters: WaterLayer[];
-    /** 是否有瓶盖（障碍物） */
-    hasCap: boolean;
     /** 瓶子类型（用于UI样式） */
     bottleType?: number;
 }
@@ -130,8 +128,7 @@ export class LevelConfig {
         return {
             id,
             capacity,
-            waters: [],
-            hasCap: false
+            waters: []
         };
     }
 
@@ -147,8 +144,7 @@ export class LevelConfig {
             bottles.push({
                 id: `bottle_${i}`,
                 capacity,
-                waters: [],
-                hasCap: false
+                waters: []
             });
         }
 

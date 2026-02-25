@@ -284,7 +284,7 @@ export class LevelValidator {
     private static _serializeState(levelData: LevelData): string {
         const bottleStates = levelData.bottles.map(bottle => {
             const colors = bottle.waters.map(w => w.colorId).join(',');
-            return `${colors}:${bottle.capacity}:${bottle.hasCap ? '1' : '0'}`;
+            return `${colors}:${bottle.capacity}`;
         });
         return bottleStates.join('|');
     }
@@ -364,8 +364,7 @@ export class LevelValidator {
             bottles.push({
                 id: `bottle_${i}`,
                 capacity,
-                waters,
-                hasCap: false
+                waters
             });
         }
 
@@ -374,8 +373,7 @@ export class LevelValidator {
             bottles.push({
                 id: `bottle_${i}`,
                 capacity,
-                waters: [],
-                hasCap: false
+                waters: []
             });
         }
 
