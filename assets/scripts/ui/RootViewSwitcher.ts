@@ -5,8 +5,8 @@ const { ccclass, property } = _decorator;
 
 /**
  * 根视图切换器
- * 挂载在场景根节点，根据 NavigationManager.currentScene 显隐 HomeRoot/MapRoot/GameRoot
- * 监听 SCENE_LOAD_START 以在单场景模式下切换视图时更新显隐
+ * 挂载在场景根节点，根据 NavigationManager.currentScene 显隐 HomeRoot/MapRoot/CollectionRoot/GameRoot
+ * 监听 SCENE_LOAD_START 以在单场景模式下切换视图时更新显隐；BottomBar 在首页/地图页/收集页显示，游戏页隐藏
  */
 @ccclass('RootViewSwitcher')
 export class RootViewSwitcher extends Component {
@@ -17,7 +17,13 @@ export class RootViewSwitcher extends Component {
     mapRoot: Node | null = null;
 
     @property(Node)
+    collectionRoot: Node | null = null;
+
+    @property(Node)
     gameRoot: Node | null = null;
+
+    @property(Node)
+    bottomBar: Node | null = null;
 
     private _nav: NavigationManager | null = null;
     private _onSceneChange = (): void => this.applyCurrentScene();
@@ -46,8 +52,14 @@ export class RootViewSwitcher extends Component {
         if (this.mapRoot) {
             this.mapRoot.active = scene === SceneName.MAP;
         }
+        if (this.collectionRoot) {
+            this.collectionRoot.active = scene === SceneName.COLLECTION;
+        }
         if (this.gameRoot) {
             this.gameRoot.active = scene === SceneName.GAME;
+        }
+        if (this.bottomBar) {
+            this.bottomBar.active = scene !== SceneName.GAME;
         }
     }
 }

@@ -7,6 +7,7 @@ const { ccclass } = _decorator;
 export enum SceneName {
     HOME = 'HomeScene',
     MAP = 'MapScene',
+    COLLECTION = 'CollectionScene',
     GAME = 'GameScene'
 }
 
@@ -61,6 +62,7 @@ export class NavigationManager extends Component {
     private static readonly SCENE_ASSET_MAP: Record<SceneName, string> = {
         [SceneName.HOME]: 'scene',
         [SceneName.MAP]: 'scene',
+        [SceneName.COLLECTION]: 'scene',
         [SceneName.GAME]: 'scene'
     };
 
@@ -285,6 +287,13 @@ export class NavigationManager extends Component {
     }
 
     /**
+     * 快捷方法：跳转到收集页（玩家解锁的瓶子图鉴）
+     */
+    public gotoCollection(): void {
+        this.gotoScene(SceneName.COLLECTION);
+    }
+
+    /**
      * 快捷方法：跳转到游戏页
      */
     public gotoGame(levelId: string): void {
@@ -316,6 +325,7 @@ export class NavigationManager extends Component {
                 console.warn('[NavigationManager] 首页无法返回');
                 break;
             case SceneName.MAP:
+            case SceneName.COLLECTION:
                 this.gotoHome();
                 break;
             case SceneName.GAME:

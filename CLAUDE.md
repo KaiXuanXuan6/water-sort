@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Cocos Creator 3.8.8 water-sort puzzle game. Core logic layer (WaterSortEngine, LevelValidator) and presentation layer (BottleComponent, RootViewSwitcher) are implemented. Utilities (NavigationManager, BottleManager, AssetLoader, BottleCreator, LevelDataLoader) are complete. Scene and popup state are managed by NavigationManager. **Scene configuration in Cocos Creator Editor is pending**—HomeRoot/MapRoot/GameRoot and Controller bindings must be set up for the game to run.
+Cocos Creator 3.8.8 water-sort puzzle game. Core logic layer (WaterSortEngine, LevelValidator) and presentation layer (BottleComponent, RootViewSwitcher) are implemented. Utilities (NavigationManager, BottleManager, AssetLoader, BottleCreator, LevelDataLoader) are complete. Scene and popup state are managed by NavigationManager. Home flow: Start button enters game page at current level (default level 1); PlayButton label shows "Level N" from UserProfile.unlockedLevel; UserProfile default unlockedLevel = 1. RootViewSwitcher hides BottomBar on game page. **Scene configuration in Cocos Creator Editor is pending**—bindings and game-page bottle prefab setup follow **project_manifest.md** §4 and **[step.md](step.md)**.
 
 ## Development Workflow
 
@@ -21,7 +21,10 @@ Engine location: `C:\ProgramData\cocos\editors\Creator\3.8.8\`
 ### Project Structure
 
 - `assets/UI/` - All game UI artwork organized by category
-- `assets/scene.scene` - Main game scene (1280x720, 2D orthographic camera)
+- `assets/scripts/` - TypeScript scripts (data, logic, ui, utils)
+- `assets/resources/` - Runtime-loaded assets (config/levels, Backgrounds, Bottles, etc.)
+- `assets/scene.scene` - Main game scene (1280x720, 2D orthographic camera); all pages use unified Background
+- `step.md` - Step-by-step Cocos Editor setup (BottleManager, bottle prefab, BottomBar binding)
 - `library/` - Cached compiled assets (hashed directory structure)
 - `temp/` - Build artifacts and TypeScript declarations
 - `settings/`, `profiles/`, `.creator/` - Cocos Creator configuration
@@ -35,16 +38,16 @@ Engine location: `C:\ProgramData\cocos\editors\Creator\3.8.8\`
 
 1. **Logic/Presentation Separation**: Core sorting algorithm in pure TypeScript classes, no direct Cocos node coupling
 2. **Event-Driven**: Use custom events for layer communication, minimize strong references
-3. **Navigation/Scene state**: NavigationManager controls current scene and popups; RootViewSwitcher shows/hides HomeRoot/MapRoot/GameRoot by listening to scene events
+3. **Navigation/Scene state**: NavigationManager controls current scene and popups; RootViewSwitcher shows/hides HomeRoot/MapRoot/GameRoot and BottomBar (hidden on GAME) by listening to scene events
 4. **JSON Level Data**: All level configurations must be standard JSON format
 
 ### Scenes to Implement
 
 | Scene | Purpose |
 |-------|---------|
-| HomeScene | Start button, shop placeholder |
+| HomeScene | Start button (enters game at current level), "Level N" label, shop placeholder |
 | MapScene | Level list, progress display, return to home |
-| GameScene | Core gameplay, top progress,道具栏 |
+| GameScene | Core gameplay, top progress, 道具栏；进入时隐藏 BottomBar |
 | ResultPop | Success/fail popup, navigation buttons |
 | SettingPop | Sound, vibration toggles, version |
 
@@ -72,4 +75,5 @@ Engine location: `C:\ProgramData\cocos\editors\Creator\3.8.8\`
 - Before writing code, update `project_manifest.md` with current task status
 - Focus on one submodule at a time; define interfaces first for complex logic
 - Use `@property` decorator for UI component bindings
+- Editor binding checklist: **project_manifest.md** §4; game-page bottle/prefab setup: **step.md**
 - Asset import path configured: `\\192.168.10.11\NonGaming\APP\2.产品\53、海外游戏\水排序`

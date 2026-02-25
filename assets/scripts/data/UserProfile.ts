@@ -22,7 +22,7 @@ const STORAGE_KEY = 'water_sort_user_profile';
 
 const DEFAULT_PROFILE: UserProfileData = {
     currentLevel: 1,
-    unlockedLevel: 10,
+    unlockedLevel: 1,
     levelStars: {},
     undoCount: -1,
     addTubeCount: 0

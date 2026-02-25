@@ -1,17 +1,18 @@
 # 项目进度宣言 (Project Manifest)
 
-## 项目总体进度: 40%
+## 项目总体进度: 50%
 
 ---
 
 ## 1. 场景列表 (Scene List)
 
-### 1.1 首页 (HomeScene) - 20%
-- [ ] 在现有 scene 中搭建 HomeRoot 视图结构（单场景模式）
-- [ ] 添加背景图
-- [ ] 添加开始按钮 (StartButton)
+### 1.1 首页 (HomeScene) - 60%
+- [x] 在现有 scene 中搭建 HomeRoot 视图结构（单场景模式）
+- [x] 添加背景图（各页已统一使用 Background）
+- [x] 添加开始按钮 (PlayButton/StartButton)，点击进入游戏页（当前应玩关卡）
+- [x] PlayButton 文案显示 "Level N"（默认 Level 1，随 UserProfile.unlockedLevel 更新）
 - [ ] 添加商店入口按钮 (ShopButton) - 暂留占位
-- [ ] 添加设置按钮 (SettingButton)
+- [x] 添加设置按钮 (SettingButton)
 - [x] 编写 HomeSceneController 脚本
 
 ### 1.2 地图页 (MapScene) - 20%
@@ -22,13 +23,13 @@
 - [ ] 实现关卡解锁/锁定状态逻辑
 - [x] 编写 MapSceneController 脚本
 
-### 1.3 游戏页 (GameScene) - 20%
-- [ ] 在现有 scene 中搭建 GameRoot 视图结构（单场景模式）
+### 1.3 游戏页 (GameScene) - 40%
+- [ ] 在现有 scene 中搭建 GameRoot 视图结构（单场景模式），详见 [step.md](step.md)
 - [ ] 实现顶部进度条 (TopProgressBar)
 - [ ] 实现道具栏 (道具按钮: 撤销、重玩、加管)
-- [ ] 实现瓶子容器区 (BottleContainer)
+- [ ] 实现瓶子容器区 (BottleContainer) + BottleManager + 瓶子预制体（见 step.md）
 - [ ] 添加返回地图按钮 (BackButton)
-- [x] 编写 GameSceneController 脚本
+- [x] 编写 GameSceneController 脚本（selectedLevelId 为空时兜底 level_001）
 
 ### 1.4 结算页 (ResultPop) - 20%
 - [ ] 创建弹窗预制体
@@ -42,6 +43,12 @@
 - [ ] 震动开关按钮
 - [ ] 版本号显示
 - [x] 编写 SettingPopupController 脚本
+
+### 1.6 收集页 (CollectionScene) - 20%
+- [ ] 在现有 scene 中搭建 CollectionRoot 视图结构（单场景模式），详见 [step.md](step.md) 第一节
+- [ ] 实现玩家已解锁瓶子图鉴展示（占位或列表/网格）
+- [ ] 添加返回入口（由 BottomBar 或页面内返回按钮返回首页）
+- [x] 编写 CollectionSceneController 脚本（占位绑定，后续接入解锁数据）
 
 ---
 
@@ -63,7 +70,7 @@
 
 - [x] UserProfile.ts
   - [x] 定义用户档案接口 (UserProfileData)
-  - [x] 当前关卡进度、已解锁关卡、道具数量
+  - [x] 当前关卡进度、已解锁关卡、道具数量（默认 unlockedLevel = 1，从第一关开始）
   - [x] 内存读写 get/set、loadFromStorage/saveToStorage
   - [x] 本地存储持久化（sys.localStorage）
 
@@ -106,7 +113,8 @@
   - [x] 倒水动画
 
 - [x] RootViewSwitcher.ts
-  - [x] 按 NavigationManager.currentScene 显隐 homeRoot/mapRoot/gameRoot
+  - [x] 按 NavigationManager.currentScene 显隐 homeRoot/mapRoot/collectionRoot/gameRoot
+  - [x] 进入游戏页时隐藏 BottomBar，首页/地图页/收集页时显示（需绑定 bottomBar 节点）
 
 - [ ] WaterShader.ts
   - [ ] 2D液体模拟shader
@@ -173,7 +181,9 @@
 |------|------|------|
 | Home Root | Node | 拖入 HomeRoot 节点 |
 | Map Root | Node | 拖入 MapRoot 节点 |
+| Collection Root | Node | 拖入 CollectionRoot 节点（收集页，展示玩家解锁的瓶子图鉴）；详见 [step.md](step.md) 第一节 |
 | Game Root | Node | 拖入 GameRoot 节点 |
+| Bottom Bar | Node | 拖入 BottomBar 节点；进入游戏页时隐藏，首页/地图页/收集页时显示 |
 
 ### 4.2 NavigationManager（NavigationManager 节点）
 
@@ -197,6 +207,15 @@
 | Level List Container | Node | 关卡按钮的父节点 | — |
 | Level Item Prefab | Node | 关卡按钮预制体（可选） | MapLevelGray.png、MapLevelLit.png、MapLevelCurrent.png |
 | Level Button Spacing | number | 无预制体时按钮间距，默认 90 | — |
+
+### 4.4.1 CollectionSceneController（CollectionRoot，占位）
+
+| 属性 | 类型 | 说明 |
+|------|------|------|
+| Back Button | Button | 返回首页 |
+| Title Label | Label | 标题（如「图鉴」），可选 |
+| Bottle Scroll View | ScrollView | 瓶子列表滚动区域，可选 |
+| Bottle Grid Container | Node | 瓶子图标网格父节点，可选 |
 
 ### 4.5 GameSceneController（GameRoot）
 
@@ -245,18 +264,26 @@
 | Vibration Toggle | Toggle | 震动开关 | MusicBtn.png（或同风格图） |
 | Version Label | Label | 版本号显示 | 仅文案，无对应图 |
 
+### 4.9 游戏页 BottleManager 与瓶子预制体
+
+详细布置步骤见 **[step.md](step.md)**（含收集页 CollectionRoot 创建与绑定、GameRoot 节点结构、瓶子 Prefab、BottleManager/GameSceneController 绑定、RootViewSwitcher 绑定 BottomBar；收集页步骤优先于游戏页）。
+
 ---
 
 ## 5. 当前任务
 
 ### 进行中
-- 在 Cocos 编辑器中配置 scene（HomeRoot/MapRoot/GameRoot + RootViewSwitcher + NavigationManager + 各 Controller 绑定）
+- 在 Cocos 编辑器中配置 scene（HomeRoot/MapRoot/GameRoot + RootViewSwitcher + NavigationManager + 各 Controller 绑定），游戏页瓶子区与预制体按 [step.md](step.md) 操作
 
 ### 待办
 - 实现 WaterShader 水体特效（可选）
 - GameSceneController 拆分：可选抽出 LevelRunner/GamePlayCoordinator，负责关卡数据+引擎+回合胜负，Controller 只做 UI 绑定与导航（见架构评审）
 
 ### 已完成
+- 首页 Start 进入游戏页（当前应玩关卡）、PlayButton 显示 "Level N"、UserProfile 默认 unlockedLevel=1；GameSceneController 无 selectedLevelId 时兜底 level_001
+- RootViewSwitcher 增加 bottomBar 绑定，进入游戏页隐藏 BottomBar；详细步骤写入 step.md
+- NavigationManager 使用 executionOrder(-100)，各 Controller/弹窗/RootViewSwitcher 在 start() 中重试获取 instance，解决预览时加载顺序问题
+- 各页背景已统一使用 Background
 - UIResources 已迁至 resources；原 Collection/Elements 图鉴用素材已并入 UIResources 统一管理
 - 阶段5：Dialog 已迁至 resources（resources/Dialog/）
 - 阶段4：Result 已迁至 resources（resources/Result/）
