@@ -219,7 +219,7 @@ export class WaterSortEngine {
 
         return {
             success: true,
-            movedCount
+            movedCount: movableCount
         };
     }
 
