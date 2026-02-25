@@ -1,5 +1,7 @@
-import { _decorator, Component, Node, Button } from 'cc';
+import { _decorator, Component, Node, Button, Label } from 'cc';
 import { NavigationManager, NavigationEvent } from '../utils/NavigationManager';
+import { loadFromStorage, getUnlockedLevel } from '../data/UserProfile';
+import { LevelConfig } from '../data/LevelConfig';
 
 const { ccclass, property } = _decorator;
 
@@ -19,6 +21,9 @@ export class HomeSceneController extends Component {
     @property(Button)
     settingButton: Button | null = null;
 
+    @property(Label)
+    levelLabel: Label | null = null;
+
     private _navManager: NavigationManager | null = null;
 
     /**
@@ -37,6 +42,13 @@ export class HomeSceneController extends Component {
 
         // 绑定按钮事件
         this.bindEvents();
+
+        // 同步用户进度并刷新 PlayButton 文案
+        loadFromStorage();
+        const label = this.levelLabel || (this.startButton?.node.getComponentInChildren(Label) ?? null);
+        if (label) {
+            label.string = 'Level ' + getUnlockedLevel();
+        }
 
         // 监听导航事件
         this.setupNavigationListeners();
@@ -87,11 +99,12 @@ export class HomeSceneController extends Component {
     }
 
     /**
-     * 开始游戏按钮点击
+     * 开始游戏按钮点击：进入游戏页（当前应玩关卡）
      */
     private onStartClick(): void {
         console.log('[HomeSceneController] 点击开始按钮');
-        this._navManager?.gotoMap();
+        const levelId = LevelConfig.levelNumToLevelId(getUnlockedLevel());
+        this._navManager?.gotoGame(levelId);
     }
 
     /**

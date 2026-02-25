@@ -183,7 +183,8 @@
 
 | 属性 | 类型 | 说明 | 可用素材（resources/HomeGame/） |
 |------|------|------|-------------------------------|
-| Start Button | Button | 开始按钮，进入地图 | 页面底图 Home.jpg（HomeGame）；按钮图可结合 Dialog |
+| Start Button | Button | 开始按钮，进入游戏页（当前应玩关卡） | 页面底图 Home.jpg（HomeGame）；按钮图可结合 Dialog |
+| Level Label | Label | PlayButton 上显示 "Level N"（可选；未绑定则从 Start Button 子节点获取） | — |
 | Shop Button | Button | 商店入口（可占位） | 同上 |
 | Setting Button | Button | 设置按钮 | resources/Dialog/SettingsBtn.png |
 
