@@ -1,4 +1,4 @@
-import { assetManager, SpriteFrame, Prefab } from 'cc';
+import { assetManager, SpriteFrame } from 'cc';
 
 /**
  * 资源加载器
@@ -7,8 +7,7 @@ import { assetManager, SpriteFrame, Prefab } from 'cc';
 export class AssetLoader {
     /** 资源缓存 */
     private static _spriteFrameCache: Map<string, SpriteFrame> = new Map();
-    private static _prefabCache: Map<string, Prefab> = new Map();
-    private static _loadingPromises: Map<string, Promise<SpriteFrame | Prefab>> = new Map();
+    private static _loadingPromises: Map<string, Promise<SpriteFrame | null>> = new Map();
 
     /**
      * 加载瓶子图片
@@ -64,81 +63,4 @@ export class AssetLoader {
         return [normal, selected];
     }
 
-    /**
-     * 批量预加载瓶子
-     */
-    public static async preloadBottles(types: number[]): Promise<void> {
-        const promises = types.map(type => this.preloadBottle(type));
-        await Promise.all(promises);
-        console.log(`[AssetLoader] 预加载完成: ${types.length} 个瓶子类型`);
-    }
-
-    /**
-     * 加载预制体
-     */
-    public static async loadPrefab(path: string): Promise<Prefab | null> {
-        // 检查缓存
-        if (this._prefabCache.has(path)) {
-            return this._prefabCache.get(path)!;
-        }
-
-        // 检查是否正在加载
-        if (this._loadingPromises.has(path)) {
-            const promise = this._loadingPromises.get(path)!;
-            return promise as Promise<Prefab>;
-        }
-
-        const promise = new Promise<Prefab | null>((resolve) => {
-            assetManager.resources.load(path, Prefab, (err, asset) => {
-                if (err) {
-                    console.error(`[AssetLoader] 加载预制体失败: ${path}`, err);
-                    resolve(null);
-                } else {
-                    this._prefabCache.set(path, asset);
-                    resolve(asset);
-                }
-            });
-        });
-
-        this._loadingPromises.set(path, promise);
-
-        return promise.finally(() => {
-            this._loadingPromises.delete(path);
-        });
-    }
-
-    /**
-     * 从缓存获取 SpriteFrame
-     */
-    public static getSpriteFrame(key: string): SpriteFrame | undefined {
-        return this._spriteFrameCache.get(key);
-    }
-
-    /**
-     * 从缓存获取 Prefab
-     */
-    public static getPrefab(path: string): Prefab | undefined {
-        return this._prefabCache.get(path);
-    }
-
-    /**
-     * 清空缓存
-     */
-    public static clearCache(): void {
-        this._spriteFrameCache.clear();
-        this._prefabCache.clear();
-        this._loadingPromises.clear();
-        console.log('[AssetLoader] 缓存已清空');
-    }
-
-    /**
-     * 获取缓存统计
-     */
-    public static getCacheStats(): { spriteFrames: number; prefabs: number; loading: number } {
-        return {
-            spriteFrames: this._spriteFrameCache.size,
-            prefabs: this._prefabCache.size,
-            loading: this._loadingPromises.size
-        };
-    }
 }

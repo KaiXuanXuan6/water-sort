@@ -69,7 +69,7 @@ scene（场景根）
 
 ## 架构要点
 
-- **逻辑与表现分离**：排序与校验在 `WaterSortEngine`、`LevelValidator` 中，不直接依赖 Cocos 节点。
+- **逻辑与表现分离**：排序与校验在 `WaterSortEngine` 中，不直接依赖 Cocos 节点。
 - **事件驱动**：NavigationManager 发出场景/弹窗事件，RootViewSwitcher、各 Controller 监听并更新显隐与 UI。
 - **单场景**：不切换场景资产，仅通过 RootViewSwitcher 切换三个 Root 的 `active`，NavigationManager 在目标与当前场景为同一 asset 时只更新 currentScene 并派发事件。
 

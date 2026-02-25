@@ -93,15 +93,6 @@
   - [x] 合法移动检测 (hasValidMoves)
   - [x] 失败条件检测 (checkDefeat)
 
-- [x] LevelValidator.ts（关卡校验/编辑用）
-  - [x] 关卡配置验证
-  - [x] 颜色分布分析
-  - [x] 关卡可解性验证 (BFS搜索)
-  - [x] 最少步数估算
-  - [x] 随机关卡生成
-  - [x] 难度计算
-  - 说明：非运行时必需，未接入玩法；用于关卡编辑、校验或工具链
-
 ### 2.3 表现层 - 30%
 **目录**: `assets/scripts/ui/`
 
@@ -317,7 +308,10 @@
 - 创建全局导航管理器 (NavigationManager.ts)
 - 创建场景脚本骨架（HomeScene、MapScene、GameScene、ResultPop、SettingPop）
 - 实现核心排序算法 WaterSortEngine
-- 实现关卡验证器 LevelValidator
+- 删除未使用的 LevelValidator 模块（原关卡校验/编辑用，未接入运行时）
+- 未使用代码清理：LevelConfig（fromJSON/toJSON/createEmptyBottle/createLevelTemplate）、UserProfile（getUserProfile/setUserProfile/getLevelStars）、AssetLoader（preloadBottles/loadPrefab/getSpriteFrame/getPrefab/clearCache/getCacheStats）、BottleManager.bottles、BottleCreator（createFromPrefab/createBottles/createBottlesSync/preloadBottleTypes）、BottleComponent.offClick
+- GameSceneController 错误/正确提示图标逻辑 DRY 合并为 showHintAboveBottle
+- 移动端输入约定（建议统一触摸事件）写入 CLAUDE.md
 - 实现 BottleComponent 瓶子组件
 - 实现 AssetLoader 资源加载器
 - 实现 BottleManager 瓶子管理器

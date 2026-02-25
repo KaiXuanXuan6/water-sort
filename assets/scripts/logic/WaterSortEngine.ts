@@ -163,6 +163,22 @@ export class WaterSortEngine {
     }
 
     /**
+     * 获取一次合法移动的信息（用于动画：水量、颜色），不修改状态
+     */
+    public getMoveInfo(fromIndex: number, toIndex: number): { movedCount: number; colorId: number } | null {
+        const validation = this.canMove(fromIndex, toIndex);
+        if (!validation.can || !this._levelData) {
+            return null;
+        }
+        const bottles = this._levelData.bottles;
+        const fromBottle = bottles[fromIndex];
+        const toBottle = bottles[toIndex];
+        const movedCount = this._getMovableCount(fromBottle, toBottle);
+        const colorId = fromBottle.waters[fromBottle.waters.length - 1].colorId;
+        return { movedCount, colorId };
+    }
+
+    /**
      * 执行移动操作
      */
     public executeMove(fromIndex: number, toIndex: number): MoveResult {

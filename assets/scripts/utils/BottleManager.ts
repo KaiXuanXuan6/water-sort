@@ -27,10 +27,6 @@ export class BottleManager extends Component {
         return this._bottleNodes.length;
     }
 
-    public get bottles(): Node[] {
-        return this._bottleNodes;
-    }
-
     protected onDestroy(): void {
         this.clearBottles();
     }
@@ -101,7 +97,12 @@ export class BottleManager extends Component {
             const firstX = -rowWidth / 2 + W / 2;
             const x = firstX + col * (W + SH);
             const y = startY - row * (H + SV);
-            this._bottleNodes[i].setPosition(new Vec3(x, y, 0));
+            const pos = new Vec3(x, y, 0);
+            this._bottleNodes[i].setPosition(pos);
+            const comp = this._bottleComponents[i];
+            if (comp && comp.setPosition) {
+                comp.setPosition(pos);
+            }
         }
     }
 

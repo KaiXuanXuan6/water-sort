@@ -77,6 +77,19 @@ export class BottleComponent extends Component {
     private _bottleData: BottleState | null = null;
     private _waterLayerNodes: Node[] = [];
     private _originalPosition: Vec3 = new Vec3();
+    /** 目标瓶临时注入层节点（用于倒水动画中液面上涨） */
+    private _incomingPourNode: Node | null = null;
+    /** 倒水动画用：液流节点 */
+    private _streamNode: Node | null = null;
+    /** 倒水阶段 3 进度更新用 */
+    private _pourPhase3StartTime: number = 0;
+    private _pourPhase3Duration: number = 0;
+    private _pourStreamEndLocal: Vec3 = new Vec3();
+    private _pourTarget: BottleComponent | null = null;
+    private _pourColorId: number = 0;
+    private _pourMovedCount: number = 0;
+    /** Phase 3 临时液块节点（整体倾倒用） */
+    private _pourBlockNode: Node | null = null;
 
     // 颜色配置（可在运行时修改）- 高对比、易区分、偏糖果感
     private static colorConfigs: ColorConfig[] = [
@@ -470,60 +483,212 @@ export class BottleComponent extends Component {
      */
     public playIdleAnimation(): void {
         tween(this.node)
-            .to(0.2, { position: this._originalPosition }, { easing: 'sineOut' })
+            .to(0.2, { position: this._originalPosition.clone() }, { easing: 'sineOut' })
             .start();
     }
 
     /**
-     * 播放倾倒动画
+     * 播放倾倒动画（五阶段：位移 → 旋转对准 → 倒水+液流+目标液面上涨 → 起始瓶回位 → 清理）
      */
-    public playPourAnimation(targetBottle: BottleComponent, onComplete?: () => void): void {
+    public playPourAnimation(
+        targetBottle: BottleComponent,
+        movedCount: number,
+        colorId: number,
+        duration: number,
+        onComplete?: () => void
+    ): void {
         if (!this._bottleData || this._bottleData.waters.length === 0) {
             if (onComplete) onComplete();
             return;
         }
 
-        // 计算目标位置
-        const targetWorldPos = new Vec3();
-        targetBottle.node.getWorldPosition(targetWorldPos);
+        tween(this.node).stop();
 
-        const startPos = new Vec3();
-        this.node.getWorldPosition(startPos);
-
-        // 计算中间位置（上方弧线）
-        const midPos = new Vec3(
-            (startPos.x + targetWorldPos.x) / 2,
-            Math.max(startPos.y, targetWorldPos.y) + 50,
-            startPos.z
-        );
-
-        // 倾倒状态
+        // 不在此处覆盖 _originalPosition，保留选中时或 layoutBottles 设置的布局原位
         this.setState(BottleStateEnum.POURING, false);
         targetBottle.setState(BottleStateEnum.RECEIVING, false);
 
-        // 触发倾倒开始事件
         this.node.emit(BottleComponent.EVENT_POUR_START, {
             from: this._bottleIndex,
             to: targetBottle.bottleIndex
         });
 
-        // 执行动画
+        const t1 = duration * 0.2;
+        const t2 = duration * 0.15;
+        const t3 = duration * 0.5;
+        const t4 = duration * 0.15;
+
+        const parent = this.node.parent;
+        const sourceMouthWorld = new Vec3();
+        const targetMouthWorld = new Vec3();
+        this.getMouthWorldPosition(sourceMouthWorld);
+        targetBottle.getMouthWorldPosition(targetMouthWorld);
+        const sourceMouthLocal = new Vec3();
+        const targetMouthLocal = new Vec3();
+        let pourAngle = 58;
+        if (parent) {
+            const parentUT = parent.getComponent(UITransformType);
+            if (parentUT) {
+                parentUT.convertToNodeSpaceAR(sourceMouthWorld, sourceMouthLocal);
+                parentUT.convertToNodeSpaceAR(targetMouthWorld, targetMouthLocal);
+                const dx = targetMouthLocal.x - sourceMouthLocal.x;
+                const dy = targetMouthLocal.y - sourceMouthLocal.y;
+                pourAngle = -Math.atan2(dx, dy) * (180 / Math.PI);
+                pourAngle = Math.max(-70, Math.min(70, pourAngle));
+            }
+        }
+        const H = BottleComponent.BOTTLE_BODY_HEIGHT / 2;
+        const rad = pourAngle * (Math.PI / 180);
+        const offsetX = -H * Math.sin(rad);
+        const offsetY = H * Math.cos(rad);
+        /** 源瓶上抬量，避免与目标瓶重合 */
+        const pourRaiseY = BottleComponent.BOTTLE_BODY_HEIGHT * 0.2;
+        const targetPos = new Vec3(
+            targetMouthLocal.x - offsetX,
+            targetMouthLocal.y - offsetY + pourRaiseY,
+            targetMouthLocal.z
+        );
+
+        const cleanup = (): void => {
+            this.unschedule(this._updatePourProgress);
+            if (this._streamNode && this._streamNode.isValid) {
+                this._streamNode.destroy();
+            }
+            this._streamNode = null;
+            if (this._pourBlockNode && this._pourBlockNode.isValid) {
+                this._pourBlockNode.destroy();
+            }
+            this._pourBlockNode = null;
+            targetBottle.setState(BottleStateEnum.IDLE, false);
+            this.node.emit(BottleComponent.EVENT_POUR_END, {
+                from: this._bottleIndex,
+                to: targetBottle.bottleIndex
+            });
+            if (onComplete) onComplete();
+        };
+
+        const startPhase3 = (): void => {
+            this._pourTarget = targetBottle;
+            this._pourColorId = colorId;
+            this._pourMovedCount = movedCount;
+            this._pourPhase3StartTime = Date.now() / 1000;
+            this._pourPhase3Duration = t3;
+
+            const mouthSrc = new Vec3();
+            const mouthTgt = new Vec3();
+            this.getMouthWorldPosition(mouthSrc);
+            targetBottle.getMouthWorldPosition(mouthTgt);
+            const streamStartLocal = new Vec3();
+            if (parent) {
+                const parentUT = parent.getComponent(UITransformType);
+                if (parentUT) {
+                    const endLocal = new Vec3();
+                    parentUT.convertToNodeSpaceAR(mouthSrc, streamStartLocal);
+                    parentUT.convertToNodeSpaceAR(mouthTgt, endLocal);
+                    Vec3.subtract(this._pourStreamEndLocal, endLocal, streamStartLocal);
+                }
+            }
+
+            if (!this._streamNode && parent) {
+                this._streamNode = new Node('PourStream');
+                this._streamNode.addComponent(UITransformType);
+                this._streamNode.addComponent(Graphics);
+                parent.addChild(this._streamNode);
+            }
+            if (this._streamNode) {
+                this._streamNode.setPosition(streamStartLocal);
+            }
+
+            this.schedule(this._updatePourProgress, 0.02);
+
+            if (this.waterContainer && this._waterLayerNodes.length > 0) {
+                const capacity = this.getCapacity() || 4;
+                const ch = BottleComponent.BOTTLE_INNER_HEIGHT;
+                const effectiveLayerHeight = ch / capacity;
+                const wcTransform = this.waterContainer.getComponent(UITransformType);
+                const anchorY = wcTransform ? wcTransform.anchorPoint.y : 0.5;
+                const containerBottom = anchorY <= 0.25 ? 0 : -ch / 2;
+                const currentLayers = this.getWaterCount();
+                const fullHeight = currentLayers * effectiveLayerHeight;
+                const remainHeight = Math.max(0, (currentLayers - movedCount) * effectiveLayerHeight);
+
+                for (const n of this._waterLayerNodes) {
+                    n.active = false;
+                }
+
+                const pourBlock = new Node('PourBlock');
+                const blockUT = pourBlock.addComponent(UITransformType);
+                blockUT.setContentSize(BottleComponent.BOTTLE_INNER_WIDTH, Math.max(1, fullHeight));
+                blockUT.setAnchorPoint(0.5, 0);
+                pourBlock.setPosition(0, Math.round(containerBottom), 0);
+                const blockG = pourBlock.addComponent(Graphics);
+                blockG.clear();
+                const waters = this._bottleData!.waters;
+                for (let i = 0; i < currentLayers; i++) {
+                    const layerColor = this.getColorById(waters[i].colorId);
+                    blockG.fillColor = layerColor;
+                    blockG.rect(
+                        -BottleComponent.BOTTLE_INNER_WIDTH / 2,
+                        i * effectiveLayerHeight,
+                        BottleComponent.BOTTLE_INNER_WIDTH,
+                        effectiveLayerHeight
+                    );
+                    blockG.fill();
+                }
+                this.waterContainer.addChild(pourBlock);
+                this._pourBlockNode = pourBlock;
+
+                const scaleYEnd = fullHeight <= 0 ? 0 : remainHeight / fullHeight;
+                tween(pourBlock)
+                    .to(t3, { scale: new Vec3(1, scaleYEnd, 1) }, { easing: 'sineIn' })
+                    .start();
+            }
+        };
+
         tween(this.node)
-            .to(this.pourDuration * 0.5, { worldPosition: midPos }, { easing: 'sineOut' })
-            .to(this.pourDuration * 0.5, { worldPosition: targetWorldPos }, { easing: 'sineIn' })
+            .to(t1, { position: targetPos }, { easing: 'sineOut' })
+            .to(t2, { angle: pourAngle }, { easing: 'sineInOut' })
+            .call(startPhase3)
+            .delay(t3)
             .call(() => {
-                this.setState(BottleStateEnum.IDLE, false);
-                targetBottle.setState(BottleStateEnum.IDLE, false);
-
-                // 触发倾倒结束事件
-                this.node.emit(BottleComponent.EVENT_POUR_END, {
-                    from: this._bottleIndex,
-                    to: targetBottle.bottleIndex
-                });
-
-                if (onComplete) onComplete();
+                this.unschedule(this._updatePourProgress);
+                if (this._streamNode && this._streamNode.isValid) {
+                    this._streamNode.destroy();
+                }
+                this._streamNode = null;
+                if (this._pourBlockNode && this._pourBlockNode.isValid) {
+                    this._pourBlockNode.destroy();
+                }
+                this._pourBlockNode = null;
             })
+            .to(t4, { position: this._originalPosition.clone(), angle: 0 }, { easing: 'sineOut' })
+            .call(cleanup)
             .start();
+    }
+
+    private _updatePourProgress(): void {
+        const now = Date.now() / 1000;
+        let progress = (now - this._pourPhase3StartTime) / this._pourPhase3Duration;
+        progress = Math.min(1, Math.max(0, progress));
+
+        const target = this._pourTarget;
+        if (target && target.isValid) {
+            target.setIncomingPour(progress, this._pourColorId, this._pourMovedCount);
+        }
+
+        if (this._streamNode && this._streamNode.isValid) {
+            const g = this._streamNode.getComponent(Graphics);
+            if (g) {
+                const dx = this._pourStreamEndLocal.x * progress;
+                const dy = this._pourStreamEndLocal.y * progress;
+                g.clear();
+                g.lineWidth = 8;
+                g.strokeColor = this.getColorById(this._pourColorId);
+                g.moveTo(0, 0);
+                g.lineTo(dx, dy);
+                g.stroke();
+            }
+        }
     }
 
     // ========== 事件处理 ==========
@@ -558,13 +723,6 @@ export class BottleComponent extends Component {
     }
 
     /**
-     * 移除点击事件监听器
-     */
-    public offClick(callback: (data: BottleClickEventData) => void): void {
-        this.node.off(BottleComponent.EVENT_BOTTLE_CLICK, callback);
-    }
-
-    /**
      * 添加状态改变事件监听器
      */
     public onStateChange(callback: (data: any) => void): void {
@@ -592,6 +750,74 @@ export class BottleComponent extends Component {
      */
     public getWorldPosition(out: Vec3): Vec3 {
         return this.node.getWorldPosition(out);
+    }
+
+    /**
+     * 获取瓶口在世界坐标系中的位置（瓶顶中心）
+     */
+    public getMouthWorldPosition(out: Vec3): Vec3 {
+        const ut = this.node.getComponent(UITransformType);
+        if (!ut) {
+            return this.node.getWorldPosition(out);
+        }
+        const localMouth = new Vec3(0, BottleComponent.BOTTLE_BODY_HEIGHT / 2, 0);
+        Vec3.copy(out, ut.convertToWorldSpaceAR(localMouth));
+        return out;
+    }
+
+    /**
+     * 设置临时注入层（倒水动画中目标瓶液面上涨），ratio 0 表示清除
+     */
+    public setIncomingPour(ratio: number, colorId: number, pourLayerCount: number): void {
+        if (!this.waterContainer || pourLayerCount <= 0) {
+            if (this._incomingPourNode) {
+                this._incomingPourNode.destroy();
+                this._incomingPourNode = null;
+            }
+            return;
+        }
+        const capacity = this.getCapacity() || 4;
+        const ch = BottleComponent.BOTTLE_INNER_HEIGHT;
+        const effectiveLayerHeight = ch / capacity;
+        if (ratio <= 0) {
+            if (this._incomingPourNode) {
+                this._incomingPourNode.destroy();
+                this._incomingPourNode = null;
+            }
+            return;
+        }
+        const transform = this.waterContainer.getComponent(UITransformType);
+        if (!transform) return;
+        const anchorY = transform.anchorPoint.y;
+        const containerBottom = anchorY <= 0.25 ? 0 : -ch / 2;
+        const currentLayers = this.getWaterCount();
+        const pourHeight = ratio * pourLayerCount * effectiveLayerHeight;
+        const yPos = containerBottom + (currentLayers + 0.5 * ratio * pourLayerCount) * effectiveLayerHeight;
+
+        if (!this._incomingPourNode) {
+            this._incomingPourNode = new Node('IncomingPour');
+            const ut = this._incomingPourNode.addComponent(UITransformType);
+            ut.setContentSize(BottleComponent.BOTTLE_INNER_WIDTH, Math.max(1, pourHeight));
+            const g = this._incomingPourNode.addComponent(Graphics);
+            const color = this.getColorById(colorId);
+            g.clear();
+            g.rect(-BottleComponent.BOTTLE_INNER_WIDTH / 2, -pourHeight / 2, BottleComponent.BOTTLE_INNER_WIDTH, pourHeight);
+            g.fillColor = color;
+            g.fill();
+            this.waterContainer.addChild(this._incomingPourNode);
+        }
+        this._incomingPourNode.setPosition(0, Math.round(yPos));
+        const ut = this._incomingPourNode.getComponent(UITransformType);
+        const g = this._incomingPourNode.getComponent(Graphics);
+        if (ut && g) {
+            const h = Math.max(1, pourHeight);
+            ut.setContentSize(BottleComponent.BOTTLE_INNER_WIDTH, h);
+            const color = this.getColorById(colorId);
+            g.clear();
+            g.rect(-BottleComponent.BOTTLE_INNER_WIDTH / 2, -h / 2, BottleComponent.BOTTLE_INNER_WIDTH, h);
+            g.fillColor = color;
+            g.fill();
+        }
     }
 
     /**

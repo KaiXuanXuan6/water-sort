@@ -69,20 +69,6 @@ export class LevelConfig {
     }
 
     /**
-     * 从JSON加载关卡数据
-     */
-    static fromJSON(json: string): LevelData {
-        return JSON.parse(json) as LevelData;
-    }
-
-    /**
-     * 将关卡数据转为JSON字符串
-     */
-    static toJSON(data: LevelData): string {
-        return JSON.stringify(data, null, 2);
-    }
-
-    /**
      * 验证关卡数据有效性
      */
     static validate(data: LevelData): { valid: boolean; errors: string[] } {
@@ -118,42 +104,6 @@ export class LevelConfig {
         return {
             valid: errors.length === 0,
             errors
-        };
-    }
-
-    /**
-     * 创建空的瓶子状态
-     */
-    static createEmptyBottle(id: string, capacity: number = 4): BottleState {
-        return {
-            id,
-            capacity,
-            waters: []
-        };
-    }
-
-    /**
-     * 创建初始关卡数据模板
-     */
-    static createLevelTemplate(level: number, bottleCount: number, colorCount: number): LevelData {
-        const bottles: BottleState[] = [];
-        const capacity = 4;
-
-        // 创建瓶子
-        for (let i = 0; i < bottleCount; i++) {
-            bottles.push({
-                id: `bottle_${i}`,
-                capacity,
-                waters: []
-            });
-        }
-
-        return {
-            id: LevelConfig.levelNumToLevelId(level),
-            level,
-            bottles,
-            maxMoves: -1,
-            difficulty: 'easy'
         };
     }
 }

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Cocos Creator 3.8.8 water-sort puzzle game. Core logic layer (WaterSortEngine, LevelValidator) and presentation layer (BottleComponent, RootViewSwitcher) are implemented. Utilities (NavigationManager, BottleManager, AssetLoader, BottleCreator, LevelDataLoader) are complete. Scene and popup state are managed by NavigationManager. Home flow: Start button enters game page at current level (default level 1); PlayButton label shows "Level N" from UserProfile.unlockedLevel; UserProfile default unlockedLevel = 1. RootViewSwitcher hides BottomBar on game page. **Scene configuration in Cocos Creator Editor is pending**—bindings and game-page bottle prefab setup follow **project_manifest.md** §4 and **[step.md](step.md)**.
+Cocos Creator 3.8.8 water-sort puzzle game. Core logic layer (WaterSortEngine) and presentation layer (BottleComponent, RootViewSwitcher) are implemented. Utilities (NavigationManager, BottleManager, AssetLoader, BottleCreator, LevelDataLoader) are complete. Scene and popup state are managed by NavigationManager. Home flow: Start button enters game page at current level (default level 1); PlayButton label shows "Level N" from UserProfile.unlockedLevel; UserProfile default unlockedLevel = 1. RootViewSwitcher hides BottomBar on game page. **Scene configuration in Cocos Creator Editor is pending**—bindings and game-page bottle prefab setup follow **project_manifest.md** §4 and **[step.md](step.md)**.
 
 ## Development Workflow
 
@@ -40,6 +40,7 @@ Engine location: `C:\ProgramData\cocos\editors\Creator\3.8.8\`
 2. **Event-Driven**: Use custom events for layer communication, minimize strong references
 3. **Navigation/Scene state**: NavigationManager controls current scene and popups; RootViewSwitcher shows/hides HomeRoot/MapRoot/CollectionRoot/GameRoot and BottomBar (hidden on GAME) by listening to scene events
 4. **JSON Level Data**: All level configurations must be standard JSON format
+5. **移动端输入**：项目为移动端游戏，建议统一使用触摸事件（Touch）；BottleComponent 已用 EventTouch，其他 UI 可后续统一为触摸监听
 
 ### Scenes to Implement
 
@@ -56,7 +57,7 @@ Engine location: `C:\ProgramData\cocos\editors\Creator\3.8.8\`
 | Layer | Components |
 |-------|------------|
 | Data | LevelConfig (含 levelId/levelNum 转换), LevelDataLoader, UserProfile, ResultPayload (结算弹窗共用), GameState (optional refactor) |
-| Logic | WaterSortEngine (validation, undo), LevelValidator (关卡校验/可解性/编辑用，非运行时必需) |
+| Logic | WaterSortEngine (validation, undo) |
 | Presentation | BottleComponent, RootViewSwitcher, TopBarController（返回/设置/标题）, WaterShader (optional, 2D liquid simulation) |
 | Utilities | NavigationManager, BottleManager, BottleCreator, AssetLoader; LevelEditor (TODO) |
 

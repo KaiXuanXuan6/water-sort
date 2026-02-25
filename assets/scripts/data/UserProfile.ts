@@ -30,24 +30,12 @@ const DEFAULT_PROFILE: UserProfileData = {
 
 let _profile: UserProfileData = { ...DEFAULT_PROFILE };
 
-export function getUserProfile(): UserProfileData {
-    return _profile;
-}
-
-export function setUserProfile(data: Partial<UserProfileData>): void {
-    _profile = { ..._profile, ...data };
-}
-
 export function getUnlockedLevel(): number {
     return _profile.unlockedLevel;
 }
 
 export function setUnlockedLevel(level: number): void {
     _profile.unlockedLevel = Math.max(_profile.unlockedLevel, level);
-}
-
-export function getLevelStars(levelId: string): number {
-    return _profile.levelStars[levelId] ?? 0;
 }
 
 export function setLevelStars(levelId: string, stars: number): void {
