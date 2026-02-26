@@ -1,9 +1,9 @@
-import { _decorator, Component, Node, Button, Sprite, SpriteFrame, UIOpacity, assetManager, Vec3, tween, Tween } from 'cc';
+import { _decorator, Component, Node, Button, Label, Sprite, SpriteFrame, UIOpacity, assetManager, Vec3, tween, Tween } from 'cc';
 import { NavigationManager, NavigationEvent, PopupName, SceneName } from '../utils/NavigationManager';
 import { LevelData, LevelConfig } from '../data/LevelConfig';
 import { loadLevelFromResources } from '../data/LevelDataLoader';
 import { ResultPayload } from '../data/ResultPayload';
-import { setUnlockedLevel, setLevelStars, addProgressBarCleared, saveToStorage } from '../data/UserProfile';
+import { setUnlockedLevel, setLevelStars, addProgressBarCleared, saveToStorage, useAddTube, getAddTubeCount, useUndo, getUndoCount } from '../data/UserProfile';
 import { WaterSortEngine } from '../logic/WaterSortEngine';
 import { BottleManager } from '../utils/BottleManager';
 import { BottleComponent, BottleStateEnum } from './BottleComponent';
@@ -32,11 +32,17 @@ export class GameSceneController extends Component {
     @property(Button)
     undoButton: Button | null = null;
 
+    @property(Label)
+    undoLabel: Label | null = null;
+
     @property(Button)
     replayButton: Button | null = null;
 
     @property(Button)
     addTubeButton: Button | null = null;
+
+    @property(Label)
+    addTubeLabel: Label | null = null;
 
     @property(Node)
     bottleContainer: Node | null = null;
@@ -167,8 +173,6 @@ export class GameSceneController extends Component {
      * 从 resources 加载关卡 JSON（单一数据源，符合 DRY）；失败则使用模拟数据
      */
     private async loadLevelData(): Promise<void> {
-        console.log(`[GameSceneController] 加载关卡: ${this._currentLevelId}`);
-
         const data = await loadLevelFromResources(this._currentLevelId);
         if (data) {
             this._currentLevelData = data;
@@ -184,10 +188,37 @@ export class GameSceneController extends Component {
      * 创建模拟关卡数据（仅用于开发测试）
      */
     private createMockLevelData(levelId: string): LevelData {
+        // 创建一些测试瓶子
+        const bottles: any[] = [];
+
+        // 简单的测试关卡：3种颜色，每个瓶子2层
+        const colors = [1, 2, 3];
+        colors.forEach((color, index) => {
+            bottles.push({
+                id: `bottle_${index}`,
+                capacity: 4,
+                waters: [
+                    { colorId: color },
+                    { colorId: color }
+                ],
+                bottleType: 1
+            });
+        });
+
+        // 添加一些空瓶子
+        for (let i = 0; i < 2; i++) {
+            bottles.push({
+                id: `empty_${i}`,
+                capacity: 4,
+                waters: [],
+                bottleType: 1
+            });
+        }
+
         return {
             id: levelId,
             level: LevelConfig.levelIdToLevelNum(levelId),
-            bottles: [],
+            bottles: bottles,
             difficulty: 'easy'
         };
     }
@@ -196,8 +227,6 @@ export class GameSceneController extends Component {
      * 初始化游戏
      */
     private async initGame(): Promise<void> {
-        console.log('[GameSceneController] 初始化游戏');
-
         this._playState = PlayState.IDLE;
         this._selectedBottleIndex = -1;
         this._engine.reset();
@@ -220,14 +249,12 @@ export class GameSceneController extends Component {
         if (manager && this._currentLevelData.bottles.length > 0) {
             await manager.createBottles(this._currentLevelData.bottles);
             this.bindBottleClickListeners(manager);
-            console.log(`[GameSceneController] 生成 ${this._currentLevelData.bottles.length} 个瓶子`);
             return;
         }
 
         if (this.bottleContainer) {
             this.bottleContainer.removeAllChildren();
         }
-        console.warn('[GameSceneController] 未找到 BottleManager 或关卡无瓶子');
     }
 
     /**
@@ -248,8 +275,26 @@ export class GameSceneController extends Component {
      * 更新道具按钮状态
      */
     private updatePropButtons(): void {
-        // TODO: 根据道具数量更新按钮状态
-        // 例如：没有撤销次数时禁用撤销按钮
+        // 更新撤销按钮的Label和状态
+        if (this.undoLabel) {
+            this.undoLabel.string = `${getUndoCount()}`;
+        }
+        if (this.undoButton) {
+            this.undoButton.interactable = getUndoCount() > 0;
+        }
+
+        // 更新加管按钮的Label和状态
+        if (this.addTubeLabel) {
+            this.addTubeLabel.string = `${getAddTubeCount()}`;
+        }
+        if (this.addTubeButton) {
+            this.addTubeButton.interactable = getAddTubeCount() > 0;
+        }
+
+        // 重玩按钮无限制，始终可用
+        if (this.replayButton) {
+            this.replayButton.interactable = true;
+        }
     }
 
     /**
@@ -598,10 +643,15 @@ export class GameSceneController extends Component {
      * 撤销按钮点击
      */
     private onUndoClick(): void {
-        console.log('[GameSceneController] 点击撤销按钮');
+        // 先尝试撤销，如果成功再消耗道具
         if (this._engine.undoMove()) {
+            // 消耗撤销道具
+            useUndo();
             this._moveCount = this._engine.moveCount;
             this.syncBottlesFromEngine();
+            this.updatePropButtons();
+        } else {
+            // TODO: 显示没有可撤销操作的提示
         }
     }
 
@@ -609,16 +659,32 @@ export class GameSceneController extends Component {
      * 重玩按钮点击
      */
     private onReplayClick(): void {
-        console.log('[GameSceneController] 点击重玩按钮');
         this.initGame();
     }
+
 
     /**
      * 加管按钮点击
      */
     private onAddTubeClick(): void {
-        console.log('[GameSceneController] 点击加管按钮');
-        // TODO: 添加空瓶子到游戏中
+        // 检查是否可以使用加管道具
+        if (!useAddTube()) {
+            // TODO: 显示道具用完提示
+            return;
+        }
+
+        // 使用引擎添加瓶子
+        const newBottleIndex = this._engine.addTube();
+
+        if (newBottleIndex >= 0) {
+            // 重新创建瓶子UI
+            const manager = this.bottleManager ?? this.node.getComponentInChildren(BottleManager);
+            if (manager) {
+                manager.createBottles(this._engine.levelData!.bottles);
+                this.bindBottleClickListeners(manager);
+                this.updatePropButtons();
+            }
+        }
     }
 
     /**

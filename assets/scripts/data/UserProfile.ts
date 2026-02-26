@@ -28,8 +28,8 @@ const DEFAULT_PROFILE: UserProfileData = {
     currentLevel: 1,
     unlockedLevel: 1,
     levelStars: {},
-    undoCount: -1,
-    addTubeCount: 0,
+    undoCount: 3,
+    addTubeCount: 1,
     progressBarCleared: 0,
     progressBarTarget: 8
 };
@@ -94,6 +94,47 @@ export function saveToStorage(): void {
     } catch (e) {
         console.warn('[UserProfile] saveToStorage 写入失败', e);
     }
+}
+
+/** 使用撤销道具，返回是否成功 */
+export function useUndo(): boolean {
+    if (_profile.undoCount > 0) {
+        _profile.undoCount--;
+        saveToStorage();
+        return true;
+    }
+    return false;
+}
+
+/** 使用加管道具，返回是否成功 */
+export function useAddTube(): boolean {
+    if (_profile.addTubeCount > 0) {
+        _profile.addTubeCount--;
+        saveToStorage();
+        return true;
+    }
+    return false;
+}
+
+/** 增加撤销道具次数 */
+export function addUndoCount(count: number): void {
+    _profile.undoCount = Math.max(0, _profile.undoCount + count);
+    saveToStorage();
+}
+
+/** 增加加管道具次数 */
+export function addAddTubeCount(count: number): void {
+    _profile.addTubeCount = Math.max(0, _profile.addTubeCount + count);
+    saveToStorage();
+}
+
+/** 获取当前道具数量 */
+export function getUndoCount(): number {
+    return _profile.undoCount;
+}
+
+export function getAddTubeCount(): number {
+    return _profile.addTubeCount;
 }
 
 function sanitizeNumber(val: unknown, defaultVal: number, min: number): number {

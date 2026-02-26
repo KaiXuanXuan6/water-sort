@@ -464,4 +464,103 @@ export class WaterSortEngine {
         this._moveHistory = [];
         this._stateHistory = [];
     }
+
+    /**
+     * 添加新瓶子（加管功能）
+     * @param bottleType 瓶子类型，可选
+     * @returns 新瓶子的索引，失败返回-1
+     */
+    public addTube(bottleType?: number): number {
+        if (!this._levelData) {
+            return -1;
+        }
+
+        // 保存添加前的状态，以便撤销
+        this._saveSnapshot();
+
+        // 创建新瓶子
+        const newBottle: BottleState = {
+            id: 'tube_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+            capacity: 4, // 默认容量
+            waters: [],
+            bottleType: bottleType || 1
+        };
+
+        // 如果有现有瓶子，使用第一个瓶子的容量
+        if (this._levelData.bottles.length > 0) {
+            newBottle.capacity = this._levelData.bottles[0].capacity;
+        }
+
+        // 添加到关卡
+        this._levelData.bottles.push(newBottle);
+
+        // 记录添加操作（特殊的移动记录）
+        const record: MoveRecord = {
+            fromIndex: -1, // 特殊标记，表示添加操作
+            toIndex: this._levelData.bottles.length - 1,
+            movedCount: 0,
+            colorId: 0,
+            fromBefore: [],
+            toBefore: []
+        };
+        this._moveHistory.push(record);
+
+        this._moveCount++;
+
+        return this._levelData.bottles.length - 1;
+    }
+
+    /**
+     * 移除瓶子（预留功能）
+     * @param index 要移除的瓶子索引
+     * @returns 是否成功
+     */
+    public removeTube(index: number): boolean {
+        if (!this._levelData || index < 0 || index >= this._levelData.bottles.length) {
+            return false;
+        }
+
+        // 保存状态
+        this._saveSnapshot();
+
+        // 移除瓶子
+        this._levelData.bottles.splice(index, 1);
+
+        // 更新后续移动记录中的索引
+        for (const record of this._moveHistory) {
+            if (record.toIndex > index) {
+                record.toIndex--;
+            }
+            if (record.fromIndex > index) {
+                record.fromIndex--;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * 获取瓶子数量
+     */
+    public getBottleCount(): number {
+        return this._levelData?.bottles.length || 0;
+    }
+
+    /**
+     * 获取指定瓶子的状态
+     */
+    public getBottleState(index: number): BottleState | null {
+        if (!this._levelData || index < 0 || index >= this._levelData.bottles.length) {
+            return null;
+        }
+        return this._levelData.bottles[index];
+    }
+
+    /**
+     * 检查是否可以添加瓶子（预留验证逻辑）
+     */
+    public canAddTube(): boolean {
+        // 当前版本允许无限添加，可以在这里添加限制逻辑
+        return true;
+    }
 }
