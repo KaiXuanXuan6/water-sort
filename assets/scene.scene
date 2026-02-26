@@ -11,7 +11,7 @@
   },
   {
     "__type__": "cc.Scene",
-    "_name": "scene",
+    "_name": "Scene",
     "_objFlags": 0,
     "__editorExtras__": {},
     "_parent": null,
@@ -499,7 +499,7 @@
   },
   {
     "__type__": "cc.Node",
-    "_name": "coins_bg",
+    "_name": "CoinsBg",
     "_objFlags": 0,
     "__editorExtras__": {},
     "_parent": {
@@ -557,7 +557,7 @@
   },
   {
     "__type__": "cc.Node",
-    "_name": "coin_icon",
+    "_name": "CoinIcon",
     "_objFlags": 0,
     "__editorExtras__": {},
     "_parent": {
@@ -666,7 +666,7 @@
   },
   {
     "__type__": "cc.Node",
-    "_name": "+",
+    "_name": "Plus",
     "_objFlags": 0,
     "__editorExtras__": {},
     "_parent": {
@@ -828,7 +828,7 @@
   },
   {
     "__type__": "cc.Node",
-    "_name": "num",
+    "_name": "Num",
     "_objFlags": 0,
     "__editorExtras__": {},
     "_parent": {
@@ -1808,7 +1808,7 @@
   },
   {
     "__type__": "cc.Node",
-    "_name": "collection",
+    "_name": "Collection",
     "_objFlags": 0,
     "__editorExtras__": {},
     "_parent": {
@@ -2106,7 +2106,7 @@
   },
   {
     "__type__": "cc.Node",
-    "_name": "home",
+    "_name": "Home",
     "_objFlags": 0,
     "__editorExtras__": {},
     "_parent": {
@@ -2404,7 +2404,7 @@
   },
   {
     "__type__": "cc.Node",
-    "_name": "map",
+    "_name": "Map",
     "_objFlags": 0,
     "__editorExtras__": {},
     "_parent": {
@@ -2809,7 +2809,7 @@
   },
   {
     "__type__": "cc.Node",
-    "_name": "level",
+    "_name": "Level",
     "_objFlags": 0,
     "__editorExtras__": {},
     "_parent": {
@@ -3107,7 +3107,7 @@
   },
   {
     "__type__": "cc.Node",
-    "_name": "countdown",
+    "_name": "Countdown",
     "_objFlags": 0,
     "__editorExtras__": {},
     "_parent": {
@@ -3382,6 +3382,9 @@
     "__prefab": null,
     "startButton": {
       "__id__": 74
+    },
+    "startButtonLevelLabel": {
+      "__id__": 71
     },
     "shopButton": {
       "__id__": 19

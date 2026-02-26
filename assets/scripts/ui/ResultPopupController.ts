@@ -7,13 +7,12 @@ import { getProgressBarCleared, getProgressBarTarget } from '../data/UserProfile
 const { ccclass, property } = _decorator;
 
 /**
- * 结算弹窗控制器
- * 负责游戏成功/失败弹窗的显示和交互
+ * 游戏结果弹窗控制器
  */
 @ccclass('ResultPopupController')
 export class ResultPopupController extends Component {
-    // UI 组件绑定（成功/失败共用一版，用 ResultTitle 与主按钮文案区分）
-    /** 结算标题（如「通关」「失败」），根据 success 更新 */
+    // UI 组件绑定
+    /** 标题：VICTORY/FAIL */
     @property(Label)
     resultTitle: Label | null = null;
 
@@ -23,19 +22,19 @@ export class ResultPopupController extends Component {
     @property(Label)
     levelNumLabel: Label | null = null;
 
-    /** 主操作按钮：成功时为「下一关」，失败时为「再玩一次」，统一绑定此按钮 */
+    /** 主按钮：下一关/再玩一次 */
     @property(Button)
     resultActionButton: Button | null = null;
 
-    /** 进度条背景（Result/progress_bg）；可选 */
+    /** 进度条背景 */
     @property(Sprite)
     progressBarBg: Sprite | null = null;
 
-    /** 进度条填充（Result/progress，Sprite 需设为 FILLED 横向） */
+    /** 进度条填充 */
     @property(Sprite)
     progressBarFill: Sprite | null = null;
 
-    /** 进度文案，如 "6/8" */
+    /** 进度文案 "6/8" */
     @property(Label)
     progressLabel: Label | null = null;
 
@@ -43,110 +42,90 @@ export class ResultPopupController extends Component {
     private _resultData: ResultPayload | null = null;
     private _isShowed: boolean = false;
     private _starFinalPositions: Vec3[] = [];
+    private _previousProgressCleared: number = 0;
+    private _isAnimating: boolean = false;
 
-    /**
-     * 组件生命周期：加载
-     */
-    protected onLoad(): void {
-        console.log('[ResultPopupController] 弹窗加载完成');
-
+protected onLoad(): void {
+        console.log('[ResultPopupController] 加载完成');
         this._navManager = NavigationManager.instance;
 
         if (!this._navManager) {
-            console.error('[ResultPopupController] 未找到导航管理器');
+            console.error('[ResultPopupController] 导航管理器未找到');
             return;
         }
 
-        // 初始隐藏弹窗
         this.hide();
-
-        // 绑定按钮事件
         this.bindEvents();
-
-        // 监听导航事件
         this.setupNavigationListeners();
     }
 
-    /**
-     * 组件生命周期：启动
-     */
     protected start(): void {
-        console.log('[ResultPopupController] 弹窗启动');
+        console.log('[ResultPopupController] 启动');
     }
 
-    /**
-     * 组件生命周期：销毁
-     */
     protected onDestroy(): void {
         if (this._navManager) {
             this._navManager.removeListener(NavigationEvent.POPUP_OPEN, this.onPopupOpen);
         }
     }
 
-    /**
-     * 绑定按钮事件
-     */
     private bindEvents(): void {
         if (this.resultActionButton) {
             this.resultActionButton.node.on(Button.EventType.CLICK, this.onResultActionClick, this);
         }
     }
 
-    /**
-     * 设置导航事件监听
-     */
     private setupNavigationListeners(): void {
         if (this._navManager) {
             this._navManager.addListener(NavigationEvent.POPUP_OPEN, this.onPopupOpen);
         }
     }
 
-    /**
-     * 显示弹窗
-     */
     public show(data: ResultPayload): void {
-        console.log('[ResultPopupController] 显示弹窗:', data);
-
+        console.log('[ResultPopupController] 显示:', data);
         this._resultData = data;
         this._isShowed = true;
         this.node.active = true;
 
+        // 初始隐藏按钮
+        if (this.resultActionButton) {
+            this.resultActionButton.node.active = false;
+        }
+
+        // 记录进度起始点
+        this._previousProgressCleared = getProgressBarCleared();
+        if (this._resultData.success) {
+            this._previousProgressCleared = Math.max(0, this._previousProgressCleared - 1);
+        }
+
         this.updateResultContent();
     }
 
-    /**
-     * 隐藏弹窗
-     */
     public hide(): void {
-        console.log('[ResultPopupController] 隐藏弹窗');
+        console.log('[ResultPopupController] 隐藏');
         this._isShowed = false;
         this.node.active = false;
+
+        Tween.stopAllByTarget(this.resultActionButton?.node);
+        this._isAnimating = false;
     }
 
-    /**
-     * 根据 success 更新标题、主按钮文案与星星/进度/关卡号
-     */
     private updateResultContent(): void {
         const success = this._resultData?.success ?? false;
 
         if (this.resultTitle) {
-            this.resultTitle.string = success ? '通关' : '失败';
-        }
-
-        const actionLabel = this.resultActionButton?.node.getComponentInChildren(Label);
-        if (actionLabel) {
-            actionLabel.string = success ? '下一关' : '再玩一次';
+            this.resultTitle.string = success ? 'VICTORY' : 'FAIL';
         }
 
         this.updateProgressBar();
         this.updateStarsDisplay();
         this.updateLabels();
+
+        // 动画结束后显示按钮
+        this.showActionButton();
     }
 
-    /**
-     * 更新进度条：根据用户数据 progressBarCleared / progressBarTarget 表示百分比；使用 SLICED 避免拉伸变形
-     */
-    private updateProgressBar(): void {
+    private updateProgressBar(animate: boolean = true): number {
         const cleared = getProgressBarCleared();
         const target = getProgressBarTarget();
         const ratio = target > 0 ? Math.min(1, cleared / target) : 0;
@@ -158,7 +137,7 @@ export class ResultPopupController extends Component {
         if (this.progressBarBg) {
             this.progressBarBg.type = Sprite.Type.SLICED;
         }
-        /** 进度条 Fill 左侧固定偏移（与背景左边缘间距） */
+
         const FILL_LEFT = 8.5;
         if (this.progressBarFill) {
             this.progressBarFill.type = Sprite.Type.SLICED;
@@ -166,8 +145,8 @@ export class ResultPopupController extends Component {
             const fillUT = fillNode.getComponent(UITransform);
             if (fillUT) {
                 fillUT.setAnchorPoint(0, 0.5);
-                const pos = fillNode.position;
-                fillNode.setPosition(FILL_LEFT, pos.y, pos.z);
+                fillNode.setPosition(FILL_LEFT, fillNode.position.y, fillNode.position.z);
+
                 const fillWidget = fillNode.getComponent(Widget);
                 if (fillWidget) {
                     fillWidget.isAlignLeft = true;
@@ -175,32 +154,70 @@ export class ResultPopupController extends Component {
                     fillWidget.isAlignRight = false;
                     fillWidget.isAlignHorizontalCenter = false;
                 }
+
                 const parentUT = fillNode.parent?.getComponent(UITransform);
                 const refUT = this.progressBarBg?.node.getComponent(UITransform);
                 const fullW = parentUT ? parentUT.contentSize.width : (refUT ? refUT.contentSize.width : fillUT.contentSize.width);
                 const fullH = refUT ? refUT.contentSize.height : fillUT.contentSize.height;
-                fillUT.setContentSize(fullW * ratio, fullH);
+                const finalWidth = fullW * ratio;
+
+                if (animate && this._resultData?.success && this._previousProgressCleared < cleared) {
+                    const oldRatio = this._previousProgressCleared / target;
+                    const oldWidth = fullW * oldRatio;
+                    this._isAnimating = true;
+
+                    Tween.stopAllByTarget(fillNode);
+                    fillUT.setContentSize(oldWidth, fullH);
+
+                    return this.animateProgressBar(fillNode, fillUT, oldWidth, finalWidth, fullH);
+                } else {
+                    fillUT.setContentSize(finalWidth, fullH);
+                    return 0;
+                }
             }
         }
+        return 0;
     }
 
-    /** 星星动画：从左下角由小变大，再变小到最终位置；三颗星错峰播放 */
+    private animateProgressBar(fillNode: Node, fillUT: UITransform, oldWidth: number, newWidth: number, fullHeight: number): number {
+        tween(fillUT)
+            .to(ResultPopupController.PROGRESS_ANIM_DURATION, {
+                contentSize: new Vec3(newWidth, fullHeight, 1)
+            }, {
+                easing: 'quadOut',
+                onUpdate: () => {
+                    if (fillNode.getComponent(Widget)) {
+                        fillNode.getComponent(Widget)!.updateAlignment();
+                    }
+                },
+                onComplete: () => {
+                    this._isAnimating = false;
+                }
+            })
+            .start();
+
+        return ResultPopupController.PROGRESS_ANIM_DURATION;
+    }
+
+    /** 星星动画：从左下角由小变大，再变小到最终位置 */
     private static readonly STAR_ANIM_OFFSET = new Vec3(-80, -100, 0);
     private static readonly STAR_ANIM_SCALE_UP = 1.3;
-    /** 单颗星：放大阶段时长 */
     private static readonly STAR_ANIM_DURATION_UP = 0.5;
-    /** 单颗星：缩小回弹阶段时长 */
     private static readonly STAR_ANIM_DURATION_DOWN = 0.2;
-    /** 每颗星相对上一颗的延迟（错位播放） */
     private static readonly STAR_ANIM_DELAY = 0.5;
 
-    /**
-     * 更新星级显示并播放星星动画
-     */
+    /** 进度条动画参数 */
+    private static readonly PROGRESS_ANIM_DURATION = 0.6;
+
+    /** 按钮弹出动画参数 */
+    private static readonly BUTTON_POP_SCALE = 1.2;
+    private static readonly BUTTON_POP_DURATION_UP = 0.15;
+    private static readonly BUTTON_POP_DURATION_DOWN = 0.1;
+    private static readonly BUTTON_POP_DURATION_SECOND_UP = 0.1;
+    private static readonly BUTTON_POP_DURATION_SECOND_DOWN = 0.15;
+
     private updateStarsDisplay(): void {
-        if (!this._resultData) {
-            return;
-        }
+        if (!this._resultData) return;
 
         const starCount = Math.min(this._resultData.stars ?? 0, 3);
         const starNodes = this.stars;
@@ -208,6 +225,7 @@ export class ResultPopupController extends Component {
         for (let i = 0; i < starNodes.length; i++) {
             const starNode = starNodes[i];
             if (!starNode) continue;
+
             Tween.stopAllByTarget(starNode);
             if (i < starCount) {
                 starNode.active = true;
@@ -231,37 +249,71 @@ export class ResultPopupController extends Component {
         }
     }
 
-    /**
-     * 更新文本标签：胜利时显示下一关「Level N」，失败时显示当前关
-     */
-    private updateLabels(): void {
-        if (!this._resultData) {
-            return;
-        }
-        if (this.levelNumLabel) {
-            const currentLevelNum = LevelConfig.levelIdToLevelNum(this._resultData.levelId);
-            const displayLevelNum = this._resultData.success ? currentLevelNum + 1 : currentLevelNum;
-            this.levelNumLabel.string = `Level ${displayLevelNum}`;
+    private showActionButton(): void {
+        if (!this.resultActionButton || !this._resultData) return;
+
+        if (this._resultData.success) {
+            // 成功时：让按钮在1.5s时显示完成（动画总时长0.5s）
+            const buttonAnimDuration = ResultPopupController.BUTTON_POP_DURATION_UP +
+                                     ResultPopupController.BUTTON_POP_DURATION_DOWN +
+                                     ResultPopupController.BUTTON_POP_DURATION_SECOND_UP +
+                                     ResultPopupController.BUTTON_POP_DURATION_SECOND_DOWN;
+            const totalDelay = 1.5 - buttonAnimDuration; // 1.0s开始，1.5s完成
+
+            setTimeout(() => {
+                this.showAndAnimateButton();
+            }, totalDelay * 1000);
+        } else {
+            this.showAndAnimateButton();
         }
     }
 
-    /**
-     * 弹窗打开事件处理
-     */
+    private showAndAnimateButton(): void {
+        if (!this.resultActionButton) return;
+
+        this.resultActionButton.node.active = true;
+        this.animateActionButton();
+    }
+
+    private animateActionButton(): void {
+        if (!this.resultActionButton) return;
+
+        const buttonNode = this.resultActionButton.node;
+        Tween.stopAllByTarget(buttonNode);
+
+        buttonNode.setScale(new Vec3(0, 0, 1));
+
+        // 播放弹出动画：两下弹跳
+        tween(buttonNode)
+            .to(ResultPopupController.BUTTON_POP_DURATION_UP, { scale: new Vec3(ResultPopupController.BUTTON_POP_SCALE, ResultPopupController.BUTTON_POP_SCALE, 1) }, { easing: 'backOut' })
+            .to(ResultPopupController.BUTTON_POP_DURATION_DOWN, { scale: new Vec3(1, 1, 1) }, { easing: 'quadOut' })
+            .to(ResultPopupController.BUTTON_POP_DURATION_SECOND_UP, { scale: new Vec3(1.1, 1.1, 1) }, { easing: 'quadOut' })
+            .to(ResultPopupController.BUTTON_POP_DURATION_SECOND_DOWN, { scale: new Vec3(1, 1, 1) }, { easing: 'quadOut' })
+            .start();
+    }
+
+    private updateLabels(): void {
+        if (!this._resultData) return;
+
+        const currentLevelNum = LevelConfig.levelIdToLevelNum(this._resultData.levelId);
+        const nextLevelNum = currentLevelNum + 1;
+        const displayText = this._resultData.success ? `Level ${nextLevelNum}` : 'Replay';
+
+        // 更新关卡号标签
+        if (this.levelNumLabel) {
+            this.levelNumLabel.string = displayText;
+        }
+    }
+
     private onPopupOpen = (data: any): void => {
         if (data.popupName === PopupName.RESULT && data.data) {
-            console.log('[ResultPopupController] 收到打开结算弹窗请求');
+            console.log('[ResultPopupController] 打开弹窗');
             this.show(data.data);
         }
     };
 
-    /**
-     * 主操作按钮点击：成功则下一关，失败则重玩
-     */
     private onResultActionClick(): void {
-        if (!this._resultData) {
-            return;
-        }
+        if (!this._resultData || this._isAnimating) return;
 
         this.hide();
         this._navManager?.closePopup();
@@ -275,9 +327,6 @@ export class ResultPopupController extends Component {
         }
     }
 
-    /**
-     * 获取是否显示中
-     */
     public get isShowed(): boolean {
         return this._isShowed;
     }

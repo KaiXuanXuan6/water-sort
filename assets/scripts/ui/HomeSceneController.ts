@@ -1,5 +1,5 @@
-import { _decorator, Component, Node, Button } from 'cc';
-import { NavigationManager, NavigationEvent } from '../utils/NavigationManager';
+import { _decorator, Component, Button, Label } from 'cc';
+import { NavigationManager, NavigationEvent, SceneName } from '../utils/NavigationManager';
 import { loadFromStorage, getUnlockedLevel } from '../data/UserProfile';
 import { LevelConfig } from '../data/LevelConfig';
 
@@ -7,13 +7,17 @@ const { ccclass, property } = _decorator;
 
 /**
  * 首页控制器
- * 负责首页场景的初始化和交互逻辑；顶部标题（Level N）由 TopBarController 统一管理。
+ * 负责首页场景的初始化和交互逻辑；开始按钮上的「Level N」由本组件根据 UserProfile.unlockedLevel 更新。
  */
 @ccclass('HomeSceneController')
 export class HomeSceneController extends Component {
     // UI 组件绑定
     @property(Button)
     startButton: Button | null = null;
+
+    /** 开始按钮上显示的关卡文案（绑定到 PlayButton 下 level 节点的 Label） */
+    @property(Label)
+    startButtonLevelLabel: Label | null = null;
 
     @property(Button)
     shopButton: Button | null = null;
@@ -37,8 +41,9 @@ export class HomeSceneController extends Component {
         // 绑定按钮事件
         this.bindEvents();
 
-        // 同步用户进度（标题 Level N 由 TopBarController 根据场景统一更新）
+        // 同步用户进度
         loadFromStorage();
+        this.refreshStartButtonLevelLabel();
 
         // 监听导航事件
         this.setupNavigationListeners();
@@ -110,9 +115,19 @@ export class HomeSceneController extends Component {
     };
 
     /**
-     * 场景加载完成事件处理
+     * 场景加载完成事件处理：回到首页时刷新按钮上的关卡号
      */
     private onSceneLoadComplete = (data: any): void => {
         console.log('[HomeSceneController] 场景加载完成:', data.sceneName);
+        if (data?.sceneName === SceneName.HOME) {
+            this.refreshStartButtonLevelLabel();
+        }
     };
+
+    /** 根据 UserProfile.unlockedLevel 更新开始按钮上的「Level N」文案 */
+    private refreshStartButtonLevelLabel(): void {
+        if (this.startButtonLevelLabel) {
+            this.startButtonLevelLabel.string = 'Level ' + getUnlockedLevel();
+        }
+    }
 }

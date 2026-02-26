@@ -61,10 +61,10 @@ export class TopBarController extends Component {
                 this.titleLabel.string = '';
                 break;
             case SceneName.MAP:
-                this.titleLabel.string = '选择关卡';
+                this.titleLabel.string = 'Levels';
                 break;
             case SceneName.COLLECTION:
-                this.titleLabel.string = '图鉴';
+                this.titleLabel.string = 'Collection';
                 break;
             case SceneName.GAME: {
                 const levelId = this._nav.selectedLevelId || '';
