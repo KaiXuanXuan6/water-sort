@@ -1,5 +1,7 @@
-import { _decorator, Component, Node, Button, Label, Toggle } from 'cc';
+import { _decorator, Component, Button, Toggle } from 'cc';
 import { NavigationManager, NavigationEvent, PopupName } from '../utils/NavigationManager';
+import { loadFromStorage, getSoundEnabled, setSoundEnabled, getVibrationEnabled, setVibrationEnabled } from '../data/UserProfile';
+import { PopupScaleAnim } from '../animation/PopupScaleAnim';
 
 const { ccclass, property } = _decorator;
 
@@ -24,19 +26,12 @@ export class SettingPopupController extends Component {
     closeButton: Button | null = null;
 
     @property(Toggle)
-    soundToggle: Toggle | null = null;
+    soundSwitch: Toggle | null = null;
 
     @property(Toggle)
-    vibrationToggle: Toggle | null = null;
-
-    @property(Label)
-    versionLabel: Label | null = null;
+    musicSwitch: Toggle | null = null;
 
     private _navManager: NavigationManager | null = null;
-    private _userSettings: UserSettings = {
-        soundEnabled: true,
-        vibrationEnabled: true
-    };
     private _isShowed: boolean = false;
 
     /**
@@ -73,9 +68,6 @@ export class SettingPopupController extends Component {
      */
     protected start(): void {
         console.log('[SettingPopupController] 弹窗启动');
-
-        // 显示版本号
-        this.updateVersionLabel();
     }
 
     /**
@@ -95,12 +87,12 @@ export class SettingPopupController extends Component {
             this.closeButton.node.on(Button.EventType.CLICK, this.onCloseClick, this);
         }
 
-        if (this.soundToggle) {
-            this.soundToggle.node.on(Toggle.EventType.TOGGLE, this.onSoundToggle, this);
+        if (this.soundSwitch) {
+            this.soundSwitch.node.on(Toggle.EventType.TOGGLE, this.onSoundSwitch, this);
         }
 
-        if (this.vibrationToggle) {
-            this.vibrationToggle.node.on(Toggle.EventType.TOGGLE, this.onVibrationToggle, this);
+        if (this.musicSwitch) {
+            this.musicSwitch.node.on(Toggle.EventType.TOGGLE, this.onMusicSwitch, this);
         }
     }
 
@@ -117,69 +109,56 @@ export class SettingPopupController extends Component {
      * 加载用户设置
      */
     private loadUserSettings(): void {
-        // TODO: 从本地存储加载用户设置
-        // const savedSettings = localStorage.getItem('user_settings');
-        // if (savedSettings) {
-        //     this._userSettings = JSON.parse(savedSettings);
-        // }
-
-        console.log('[SettingPopupController] 加载用户设置:', this._userSettings);
-    }
-
-    /**
-     * 保存用户设置
-     */
-    private saveUserSettings(): void {
-        // TODO: 保存用户设置到本地存储
-        // localStorage.setItem('user_settings', JSON.stringify(this._userSettings));
-
-        console.log('[SettingPopupController] 保存用户设置:', this._userSettings);
+        loadFromStorage();
     }
 
     /**
      * 更新UI显示
      */
     private updateUI(): void {
-        if (this.soundToggle) {
-            this.soundToggle.isChecked = this._userSettings.soundEnabled;
+        if (this.soundSwitch) {
+            this.soundSwitch.isChecked = getSoundEnabled();
         }
 
-        if (this.vibrationToggle) {
-            this.vibrationToggle.isChecked = this._userSettings.vibrationEnabled;
-        }
-    }
-
-    /**
-     * 更新版本号显示
-     */
-    private updateVersionLabel(): void {
-        if (this.versionLabel) {
-            // TODO: 从项目配置获取版本号
-            this.versionLabel.string = 'v1.0.0';
+        if (this.musicSwitch) {
+            this.musicSwitch.isChecked = getVibrationEnabled();
         }
     }
 
     /**
-     * 显示弹窗
+     * 显示弹窗（带从小到大的缩放动画）
      */
     public show(): void {
-        console.log('[SettingPopupController] 显示弹窗');
-
         this._isShowed = true;
         this.node.active = true;
-
-        // 刷新UI显示
         this.updateUI();
+
+        const content = this.node.children[0];
+        const anim = content?.getComponent(PopupScaleAnim);
+        if (anim) {
+            anim.playShow();
+        }
     }
 
     /**
-     * 隐藏弹窗
+     * 隐藏弹窗（播缩小动画后关闭）
      */
     public hide(): void {
-        console.log('[SettingPopupController] 隐藏弹窗');
+        const content = this.node.children[0];
+        const anim = content?.getComponent(PopupScaleAnim);
+        if (anim) {
+            anim.playHide(() => {
+                this.finishHide();
+            });
+        } else {
+            this.finishHide();
+        }
+    }
 
+    private finishHide(): void {
         this._isShowed = false;
         this.node.active = false;
+        this._navManager?.closePopup();
     }
 
     /**
@@ -196,29 +175,21 @@ export class SettingPopupController extends Component {
      * 关闭按钮点击
      */
     private onCloseClick(): void {
-        console.log('[SettingPopupController] 点击关闭按钮');
         this.hide();
-        this._navManager?.closePopup();
     }
 
     /**
      * 音效开关切换
      */
-    private onSoundToggle(isChecked: boolean): void {
-        console.log('[SettingPopupController] 音效开关:', isChecked);
-        this._userSettings.soundEnabled = isChecked;
-        this.saveUserSettings();
+    private onSoundSwitch(isChecked: boolean): void {
+        setSoundEnabled(isChecked);
     }
 
     /**
-     * 震动开关切换
+     * 音乐/震动开关切换
      */
-    private onVibrationToggle(isChecked: boolean): void {
-        console.log('[SettingPopupController] 震动开关:', isChecked);
-        this._userSettings.vibrationEnabled = isChecked;
-        this.saveUserSettings();
-
-        // 测试震动
+    private onMusicSwitch(isChecked: boolean): void {
+        setVibrationEnabled(isChecked);
         if (isChecked) {
             this.testVibration();
         }
@@ -243,24 +214,25 @@ export class SettingPopupController extends Component {
      * 获取当前设置
      */
     public get userSettings(): UserSettings {
-        return { ...this._userSettings };
+        return {
+            soundEnabled: getSoundEnabled(),
+            vibrationEnabled: getVibrationEnabled()
+        };
     }
 
     /**
      * 设置音效状态
      */
     public setSoundEnabled(enabled: boolean): void {
-        this._userSettings.soundEnabled = enabled;
+        setSoundEnabled(enabled);
         this.updateUI();
-        this.saveUserSettings();
     }
 
     /**
      * 设置震动状态
      */
     public setVibrationEnabled(enabled: boolean): void {
-        this._userSettings.vibrationEnabled = enabled;
+        setVibrationEnabled(enabled);
         this.updateUI();
-        this.saveUserSettings();
     }
 }

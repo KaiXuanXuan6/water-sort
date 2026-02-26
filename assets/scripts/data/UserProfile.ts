@@ -6,6 +6,10 @@ import { sys } from 'cc';
  */
 
 export interface UserProfileData {
+    /** 音效开关（Voice） */
+    soundEnabled: boolean;
+    /** 震动开关（Music） */
+    vibrationEnabled: boolean;
     /** 当前玩到的最大关卡序号（1-based） */
     currentLevel: number;
     /** 已解锁的最大关卡序号 */
@@ -25,6 +29,8 @@ export interface UserProfileData {
 const STORAGE_KEY = 'water_sort_user_profile';
 
 const DEFAULT_PROFILE: UserProfileData = {
+    soundEnabled: true,
+    vibrationEnabled: true,
     currentLevel: 1,
     unlockedLevel: 1,
     levelStars: {},
@@ -35,6 +41,24 @@ const DEFAULT_PROFILE: UserProfileData = {
 };
 
 let _profile: UserProfileData = { ...DEFAULT_PROFILE };
+
+export function getSoundEnabled(): boolean {
+    return _profile.soundEnabled;
+}
+
+export function setSoundEnabled(enabled: boolean): void {
+    _profile.soundEnabled = enabled;
+    saveToStorage();
+}
+
+export function getVibrationEnabled(): boolean {
+    return _profile.vibrationEnabled;
+}
+
+export function setVibrationEnabled(enabled: boolean): void {
+    _profile.vibrationEnabled = enabled;
+    saveToStorage();
+}
 
 export function getUnlockedLevel(): number {
     return _profile.unlockedLevel;
@@ -72,6 +96,8 @@ export function loadFromStorage(): UserProfileData {
         const parsed = JSON.parse(raw) as Partial<UserProfileData>;
         if (parsed && typeof parsed === 'object') {
             _profile = {
+                soundEnabled: typeof parsed.soundEnabled === 'boolean' ? parsed.soundEnabled : true,
+                vibrationEnabled: typeof parsed.vibrationEnabled === 'boolean' ? parsed.vibrationEnabled : true,
                 currentLevel: sanitizeNumber(parsed.currentLevel, 1, 1),
                 unlockedLevel: sanitizeNumber(parsed.unlockedLevel, 1, 1),
                 levelStars: (parsed.levelStars && typeof parsed.levelStars === 'object') ? parsed.levelStars : {},
