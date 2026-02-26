@@ -5,21 +5,16 @@
     {
       "id": "bottle_0",
       "capacity": 4,
-      "waters": [
-        { "colorId": 1 },
-        { "colorId": 2 },
-        { "colorId": 1 },
-        { "colorId": 2 }
-      ],
+      "waters": [{ "colorId": 1 }, { "colorId": 1 }, { "colorId": 1 }],
       "bottleType": 1
     },
     {
       "id": "bottle_1",
       "capacity": 4,
       "waters": [
-        { "colorId": 1 },
         { "colorId": 2 },
-        { "colorId": 1 },
+        { "colorId": 2 },
+        { "colorId": 2 },
         { "colorId": 2 }
       ],
       "bottleType": 1
@@ -27,15 +22,10 @@
     {
       "id": "bottle_2",
       "capacity": 4,
-      "waters": [],
+      "waters": [{ "colorId": 1 }],
       "bottleType": 1
     },
-    {
-      "id": "bottle_3",
-      "capacity": 4,
-      "waters": [],
-      "bottleType": 1
-    }
+    { "id": "bottle_3", "capacity": 4, "waters": [], "bottleType": 1 }
   ],
   "maxMoves": 20,
   "difficulty": "easy"

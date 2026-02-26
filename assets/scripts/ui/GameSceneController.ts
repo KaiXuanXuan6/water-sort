@@ -1,4 +1,4 @@
-import { _decorator, Component, Node, Button, Sprite, SpriteFrame, assetManager, Vec3, tween, Tween } from 'cc';
+import { _decorator, Component, Node, Button, Sprite, SpriteFrame, UIOpacity, assetManager, Vec3, tween, Tween } from 'cc';
 import { NavigationManager, NavigationEvent, PopupName } from '../utils/NavigationManager';
 import { LevelData, LevelConfig } from '../data/LevelConfig';
 import { loadLevelFromResources } from '../data/LevelDataLoader';
@@ -53,6 +53,15 @@ export class GameSceneController extends Component {
     // 弹窗节点
     @property(Node)
     resultPopup: Node | null = null;
+
+    @property(Node)
+    winBanner: Node | null = null;
+
+    @property(Sprite)
+    winBannerFill: Sprite | null = null;
+
+    @property(UIOpacity)
+    winBannerLabelOpacity: UIOpacity | null = null;
 
     private _navManager: NavigationManager | null = null;
     private _engine: WaterSortEngine = new WaterSortEngine();
@@ -118,6 +127,13 @@ export class GameSceneController extends Component {
         }
         if (this._correctHintNode) {
             Tween.stopAllByTarget(this._correctHintNode);
+        }
+        const winBannerFillSprite = this.winBannerFill ?? this.winBanner?.getComponent(Sprite);
+        if (winBannerFillSprite) {
+            Tween.stopAllByTarget(winBannerFillSprite);
+        }
+        if (this.winBannerLabelOpacity) {
+            Tween.stopAllByTarget(this.winBannerLabelOpacity);
         }
         if (this._navManager) {
             this._navManager.removeListener(NavigationEvent.SCENE_LOAD_START, this.onSceneLoadStart);
@@ -196,6 +212,7 @@ export class GameSceneController extends Component {
         this._selectedBottleIndex = -1;
         this._engine.reset();
         this._moveCount = this._engine.moveCount;
+        this.resetWinBannerState();
 
         await this.generateBottles();
         this.updateProgressBar();
@@ -289,6 +306,12 @@ export class GameSceneController extends Component {
 
     /** 倒水动画时长（秒） */
     private static readonly POUR_BASE_TIME = 1;
+    /** 胜利横幅：填充时长（秒） */
+    private static readonly WIN_BANNER_FILL_TIME = 0.45;
+    /** 胜利横幅：文案淡入时长（秒） */
+    private static readonly WIN_BANNER_TEXT_FADE_TIME = 0.35;
+    /** 胜利横幅：播放完后停留时长（秒） */
+    private static readonly WIN_BANNER_HOLD_TIME = 0.15;
 
     /**
      * 尝试倒水（先播动画，动画结束后再 executeMove 并同步 UI）
@@ -482,15 +505,74 @@ export class GameSceneController extends Component {
         // TODO: 保存关卡进度
         this.saveLevelProgress();
 
-        // 显示结算弹窗
-        setTimeout(() => {
-            const payload: ResultPayload = {
-                success: true,
-                levelId: this._currentLevelId,
-                moveCount: this._moveCount
-            };
+        const payload: ResultPayload = {
+            success: true,
+            levelId: this._currentLevelId,
+            moveCount: this._moveCount
+        };
+        this.playWinBanner(() => {
             this._navManager?.showResultPopup(payload);
-        }, 500);
+        });
+    }
+
+    private resetWinBannerState(): void {
+        const fillSprite = this.winBannerFill ?? this.winBanner?.getComponent(Sprite);
+        if (fillSprite) {
+            fillSprite.type = Sprite.Type.FILLED;
+            fillSprite.fillType = Sprite.FillType.HORIZONTAL;
+            fillSprite.fillStart = 0;
+            fillSprite.fillRange = 0;
+        }
+        if (this.winBannerLabelOpacity) {
+            this.winBannerLabelOpacity.opacity = 0;
+        }
+        if (this.winBanner) {
+            this.winBanner.active = false;
+        }
+    }
+
+    private playWinBanner(onDone: () => void): void {
+        const bannerNode = this.winBanner;
+        let fillSprite = this.winBannerFill;
+        if (!fillSprite && bannerNode) {
+            fillSprite = bannerNode.getComponent(Sprite);
+        }
+
+        if (!bannerNode || !fillSprite) {
+            if (!bannerNode) {
+                console.warn('[GameSceneController] WinBanner 未绑定，跳过横幅动画');
+            } else if (!fillSprite) {
+                console.warn('[GameSceneController] WinBanner 上无 Sprite（或 winBannerFill 未绑定），跳过横幅动画');
+            }
+            onDone();
+            return;
+        }
+
+        Tween.stopAllByTarget(fillSprite);
+        if (this.winBannerLabelOpacity) {
+            Tween.stopAllByTarget(this.winBannerLabelOpacity);
+        }
+
+        fillSprite.type = Sprite.Type.FILLED;
+        fillSprite.fillType = Sprite.FillType.HORIZONTAL;
+        fillSprite.fillStart = 0;
+        fillSprite.fillRange = 0;
+        if (this.winBannerLabelOpacity) {
+            this.winBannerLabelOpacity.opacity = 0;
+        }
+        bannerNode.active = true;
+
+        tween(fillSprite)
+            .to(GameSceneController.WIN_BANNER_FILL_TIME, { fillRange: 1 }, { easing: 'quadOut' })
+            .delay(GameSceneController.WIN_BANNER_HOLD_TIME)
+            .call(onDone)
+            .start();
+
+        if (this.winBannerLabelOpacity) {
+            tween(this.winBannerLabelOpacity)
+                .to(GameSceneController.WIN_BANNER_TEXT_FADE_TIME, { opacity: 255 }, { easing: 'quadOut' })
+                .start();
+        }
     }
 
     /**

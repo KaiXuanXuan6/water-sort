@@ -272,6 +272,7 @@
 
 ### 进行中
 - 在 Cocos 编辑器中配置 scene（HomeRoot/MapRoot/GameRoot + RootViewSwitcher + NavigationManager + 各 Controller 绑定），游戏页瓶子区与预制体按 [step.md](step.md) 操作
+- GameRoot 胜利横幅（WinBanner）动画接入：胜利时横条从左到右填充，文本透明度从 0 到 1，并在动画后打开结算弹窗
 
 ### 待办
 - 实现 WaterShader 水体特效（可选）
