@@ -1,7 +1,7 @@
-import { _decorator, Component, Button, Toggle } from 'cc';
+import { _decorator, Component, Node, Button, Toggle } from 'cc';
 import { NavigationManager, NavigationEvent, PopupName } from '../utils/NavigationManager';
 import { loadFromStorage, getSoundEnabled, setSoundEnabled, getVibrationEnabled, setVibrationEnabled } from '../data/UserProfile';
-import { PopupScaleAnim } from '../animation/PopupScaleAnim';
+import { PopInOutAnim } from '../animation/PopInOutAnim';
 
 const { ccclass, property } = _decorator;
 
@@ -31,6 +31,9 @@ export class SettingPopupController extends Component {
     @property(Toggle)
     musicSwitch: Toggle | null = null;
 
+    @property(Node)
+    contentNode: Node | null = null;
+
     private _navManager: NavigationManager | null = null;
     private _isShowed: boolean = false;
 
@@ -47,8 +50,13 @@ export class SettingPopupController extends Component {
             return;
         }
 
-        // 初始隐藏弹窗
-        this.hide();
+        // 初始隐藏弹窗（无动画，避免播消失动画）
+        const anim = this.getPopInOutAnim();
+        if (anim) {
+            anim.setToHiddenState();
+        }
+        this._isShowed = false;
+        this.node.active = false;
 
         // 绑定事件
         this.bindEvents();
@@ -133,8 +141,7 @@ export class SettingPopupController extends Component {
         this.node.active = true;
         this.updateUI();
 
-        const content = this.node.children[0];
-        const anim = content?.getComponent(PopupScaleAnim);
+        const anim = this.getPopInOutAnim();
         if (anim) {
             anim.playShow();
         }
@@ -144,8 +151,7 @@ export class SettingPopupController extends Component {
      * 隐藏弹窗（播缩小动画后关闭）
      */
     public hide(): void {
-        const content = this.node.children[0];
-        const anim = content?.getComponent(PopupScaleAnim);
+        const anim = this.getPopInOutAnim();
         if (anim) {
             anim.playHide(() => {
                 this.finishHide();
@@ -159,6 +165,16 @@ export class SettingPopupController extends Component {
         this._isShowed = false;
         this.node.active = false;
         this._navManager?.closePopup();
+    }
+
+    /**
+     * 获取弹窗内容上的 PopInOutAnim
+     */
+    private getPopInOutAnim(): PopInOutAnim | null {
+        if (this.contentNode) {
+            return this.contentNode.getComponent(PopInOutAnim)
+        }
+        return null;
     }
 
     /**

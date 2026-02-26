@@ -1,8 +1,11 @@
-import { _decorator, Component, Node, Button, Label, Sprite, UITransform, Vec3, tween, Tween, Widget } from 'cc';
+import { _decorator, Component, Node, Button, Label, Sprite, UITransform, Vec3, Tween, Widget } from 'cc';
 import { NavigationManager, NavigationEvent, PopupName } from '../utils/NavigationManager';
 import { LevelConfig } from '../data/LevelConfig';
 import { ResultPayload } from '../data/ResultPayload';
 import { getProgressBarCleared, getProgressBarTarget } from '../data/UserProfile';
+import { ProgressBarAnim } from '../animation/ProgressBarAnim';
+import { StarPopAnim } from '../animation/StarPopAnim';
+import { BouncePopAnim } from '../animation/BouncePopAnim';
 
 const { ccclass, property } = _decorator;
 
@@ -169,7 +172,13 @@ protected onLoad(): void {
                     Tween.stopAllByTarget(fillNode);
                     fillUT.setContentSize(oldWidth, fullH);
 
-                    return this.animateProgressBar(fillNode, fillUT, oldWidth, finalWidth, fullH);
+                    const progressAnim = fillNode.getComponent(ProgressBarAnim);
+                    if (progressAnim) {
+                        progressAnim.play(finalWidth, fullH, () => { this._isAnimating = false; });
+                    } else {
+                        this._isAnimating = false;
+                    }
+                    return 0;
                 } else {
                     fillUT.setContentSize(finalWidth, fullH);
                     return 0;
@@ -179,42 +188,8 @@ protected onLoad(): void {
         return 0;
     }
 
-    private animateProgressBar(fillNode: Node, fillUT: UITransform, oldWidth: number, newWidth: number, fullHeight: number): number {
-        tween(fillUT)
-            .to(ResultPopupController.PROGRESS_ANIM_DURATION, {
-                contentSize: new Vec3(newWidth, fullHeight, 1)
-            }, {
-                easing: 'quadOut',
-                onUpdate: () => {
-                    if (fillNode.getComponent(Widget)) {
-                        fillNode.getComponent(Widget)!.updateAlignment();
-                    }
-                },
-                onComplete: () => {
-                    this._isAnimating = false;
-                }
-            })
-            .start();
-
-        return ResultPopupController.PROGRESS_ANIM_DURATION;
-    }
-
-    /** 星星动画：从左下角由小变大，再变小到最终位置 */
-    private static readonly STAR_ANIM_OFFSET = new Vec3(-80, -100, 0);
-    private static readonly STAR_ANIM_SCALE_UP = 1.3;
-    private static readonly STAR_ANIM_DURATION_UP = 0.5;
-    private static readonly STAR_ANIM_DURATION_DOWN = 0.2;
-    private static readonly STAR_ANIM_DELAY = 0.5;
-
-    /** 进度条动画参数 */
-    private static readonly PROGRESS_ANIM_DURATION = 0.6;
-
-    /** 按钮弹出动画参数 */
-    private static readonly BUTTON_POP_SCALE = 1.2;
-    private static readonly BUTTON_POP_DURATION_UP = 0.15;
-    private static readonly BUTTON_POP_DURATION_DOWN = 0.1;
-    private static readonly BUTTON_POP_DURATION_SECOND_UP = 0.1;
-    private static readonly BUTTON_POP_DURATION_SECOND_DOWN = 0.15;
+    /** 星星依次出现的间隔（秒） */
+    private static readonly STAR_DELAY = 0.5;
 
     private updateStarsDisplay(): void {
         if (!this._resultData) return;
@@ -233,16 +208,10 @@ protected onLoad(): void {
                     this._starFinalPositions[i] = starNode.position.clone();
                 }
                 const finalPos = this._starFinalPositions[i];
-                const startPos = new Vec3(finalPos.x + ResultPopupController.STAR_ANIM_OFFSET.x, finalPos.y + ResultPopupController.STAR_ANIM_OFFSET.y, finalPos.z);
-                starNode.setPosition(startPos);
-                starNode.setScale(new Vec3(0, 0, 1));
-
-                const delay = i * ResultPopupController.STAR_ANIM_DELAY;
-                tween(starNode)
-                    .delay(delay)
-                    .to(ResultPopupController.STAR_ANIM_DURATION_UP, { scale: new Vec3(ResultPopupController.STAR_ANIM_SCALE_UP, ResultPopupController.STAR_ANIM_SCALE_UP, 1), position: finalPos }, { easing: 'quadOut' })
-                    .to(ResultPopupController.STAR_ANIM_DURATION_DOWN, { scale: new Vec3(1, 1, 1) }, { easing: 'quadOut' })
-                    .start();
+                const starAnim = starNode.getComponent(StarPopAnim);
+                if (starAnim) {
+                    starAnim.play(finalPos, i * ResultPopupController.STAR_DELAY);
+                }
             } else {
                 starNode.active = false;
             }
@@ -253,16 +222,11 @@ protected onLoad(): void {
         if (!this.resultActionButton || !this._resultData) return;
 
         if (this._resultData.success) {
-            // 成功时：让按钮在1.5s时显示完成（动画总时长0.5s）
-            const buttonAnimDuration = ResultPopupController.BUTTON_POP_DURATION_UP +
-                                     ResultPopupController.BUTTON_POP_DURATION_DOWN +
-                                     ResultPopupController.BUTTON_POP_DURATION_SECOND_UP +
-                                     ResultPopupController.BUTTON_POP_DURATION_SECOND_DOWN;
-            const totalDelay = 1.5 - buttonAnimDuration; // 1.0s开始，1.5s完成
-
+            // 成功时：让按钮在约 1.5s 时显示完成（按钮动画约 0.5s）
+            const totalDelay = 1000; // 1s 后开始播按钮动画
             setTimeout(() => {
                 this.showAndAnimateButton();
-            }, totalDelay * 1000);
+            }, totalDelay);
         } else {
             this.showAndAnimateButton();
         }
@@ -281,15 +245,12 @@ protected onLoad(): void {
         const buttonNode = this.resultActionButton.node;
         Tween.stopAllByTarget(buttonNode);
 
-        buttonNode.setScale(new Vec3(0, 0, 1));
-
-        // 播放弹出动画：两下弹跳
-        tween(buttonNode)
-            .to(ResultPopupController.BUTTON_POP_DURATION_UP, { scale: new Vec3(ResultPopupController.BUTTON_POP_SCALE, ResultPopupController.BUTTON_POP_SCALE, 1) }, { easing: 'backOut' })
-            .to(ResultPopupController.BUTTON_POP_DURATION_DOWN, { scale: new Vec3(1, 1, 1) }, { easing: 'quadOut' })
-            .to(ResultPopupController.BUTTON_POP_DURATION_SECOND_UP, { scale: new Vec3(1.1, 1.1, 1) }, { easing: 'quadOut' })
-            .to(ResultPopupController.BUTTON_POP_DURATION_SECOND_DOWN, { scale: new Vec3(1, 1, 1) }, { easing: 'quadOut' })
-            .start();
+        const buttonAnim = buttonNode.getComponent(BouncePopAnim);
+        if (buttonAnim) {
+            buttonAnim.play();
+        } else {
+            buttonNode.setScale(1, 1, 1);
+        }
     }
 
     private updateLabels(): void {
