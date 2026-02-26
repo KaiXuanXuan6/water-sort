@@ -1,9 +1,9 @@
 import { _decorator, Component, Node, Button, Sprite, SpriteFrame, UIOpacity, assetManager, Vec3, tween, Tween } from 'cc';
-import { NavigationManager, NavigationEvent, PopupName } from '../utils/NavigationManager';
+import { NavigationManager, NavigationEvent, PopupName, SceneName } from '../utils/NavigationManager';
 import { LevelData, LevelConfig } from '../data/LevelConfig';
 import { loadLevelFromResources } from '../data/LevelDataLoader';
 import { ResultPayload } from '../data/ResultPayload';
-import { setUnlockedLevel, setLevelStars, saveToStorage } from '../data/UserProfile';
+import { setUnlockedLevel, setLevelStars, addProgressBarCleared, saveToStorage } from '../data/UserProfile';
 import { WaterSortEngine } from '../logic/WaterSortEngine';
 import { BottleManager } from '../utils/BottleManager';
 import { BottleComponent, BottleStateEnum } from './BottleComponent';
@@ -39,16 +39,10 @@ export class GameSceneController extends Component {
     addTubeButton: Button | null = null;
 
     @property(Node)
-    progressBar: Node | null = null;
-
-    @property(Node)
     bottleContainer: Node | null = null;
 
     @property(BottleManager)
     bottleManager: BottleManager | null = null;
-
-    @property(Node)
-    propBar: Node | null = null;
 
     // 弹窗节点
     @property(Node)
@@ -70,7 +64,6 @@ export class GameSceneController extends Component {
     private _playState: PlayState = PlayState.IDLE;
     private _selectedBottleIndex: number = -1;
     private _moveCount: number = 0;
-    private _maxMoves: number = -1;
     private _wrongHintNode: Node | null = null;
     private _wrongHintSpriteFrame: SpriteFrame | null = null;
     private _correctHintNode: Node | null = null;
@@ -179,13 +172,11 @@ export class GameSceneController extends Component {
         const data = await loadLevelFromResources(this._currentLevelId);
         if (data) {
             this._currentLevelData = data;
-            this._maxMoves = data.maxMoves;
             this._engine.loadLevel(data);
             return;
         }
 
         this._currentLevelData = this.createMockLevelData(this._currentLevelId);
-        this._maxMoves = this._currentLevelData.maxMoves;
         this._engine.loadLevel(this._currentLevelData);
     }
 
@@ -197,7 +188,6 @@ export class GameSceneController extends Component {
             id: levelId,
             level: LevelConfig.levelIdToLevelNum(levelId),
             bottles: [],
-            maxMoves: 20,
             difficulty: 'easy'
         };
     }
@@ -215,7 +205,6 @@ export class GameSceneController extends Component {
         this.resetWinBannerState();
 
         await this.generateBottles();
-        this.updateProgressBar();
         this.updatePropButtons();
     }
 
@@ -253,19 +242,6 @@ export class GameSceneController extends Component {
                 }, this);
             }
         }
-    }
-
-    /**
-     * 更新进度条
-     */
-    private updateProgressBar(): void {
-        if (!this.progressBar) {
-            return;
-        }
-
-        // TODO: 实现进度条更新逻辑
-        const progress = this._maxMoves > 0 ? this._moveCount / this._maxMoves : 0;
-        console.log(`[GameSceneController] 进度: ${progress}`);
     }
 
     /**
@@ -312,6 +288,8 @@ export class GameSceneController extends Component {
     private static readonly WIN_BANNER_TEXT_FADE_TIME = 0.35;
     /** 胜利横幅：播放完后停留时长（秒） */
     private static readonly WIN_BANNER_HOLD_TIME = 0.15;
+    /** 胜利横幅：整体淡出时长（秒） */
+    private static readonly WIN_BANNER_FADE_OUT_TIME = 0.35;
 
     /**
      * 尝试倒水（先播动画，动画结束后再 executeMove 并同步 UI）
@@ -358,7 +336,6 @@ export class GameSceneController extends Component {
                 this.syncBottlesFromEngine();
                 toComp.setIncomingPour(0, 0, 0);
                 this.showCorrectHintAboveBottle(toIndex);
-                this.updateProgressBar();
                 this.checkWin();
                 if (this._playState !== PlayState.FINISHED) {
                     this.checkDefeat();
@@ -401,33 +378,38 @@ export class GameSceneController extends Component {
         this.unschedule(hideCallback);
 
         const ensureHintNode = (spriteFrame: SpriteFrame | null): void => {
+            if (!bottleNode.isValid || !this.node.isValid) return;
             let node = hintNode;
-            if (!node) {
+            if (!node || !node.isValid) {
+                if (node) {
+                    if (isWrong) this._wrongHintNode = null; else this._correctHintNode = null;
+                }
                 node = new Node(nodeName);
                 const sprite = node.addComponent(Sprite);
-                sprite.spriteFrame = spriteFrame;
+                sprite.spriteFrame = spriteFrame ?? undefined;
                 const container = this.bottleContainer || this.node;
+                if (!container.isValid) return;
                 node.setParent(container);
                 node.active = false;
                 if (isWrong) this._wrongHintNode = node; else this._correctHintNode = node;
             }
             const current = isWrong ? this._wrongHintNode : this._correctHintNode;
-            if (spriteFrame && current) {
+            if (!current || !current.isValid) return;
+            if (spriteFrame) {
                 const sp = current.getComponent(Sprite);
                 if (sp) sp.spriteFrame = spriteFrame;
             }
-            if (current) {
-                current.setParent(bottleNode);
-                current.setPosition(new Vec3(0, 110, 0));
-                current.active = true;
-                Tween.stopAllByTarget(current);
-                tween(current)
-                    .to(0.1, { scale: new Vec3(0, 0, 1) })
-                    .to(0.15, { scale: new Vec3(0.5, 0.5, 1) }, { easing: 'backOut' })
-                    .to(0.1, { scale: new Vec3(0.4, 0.4, 1) })
-                    .start();
-                this.scheduleOnce(hideCallback, 1.2);
-            }
+            if (!bottleNode.isValid) return;
+            current.setParent(bottleNode);
+            current.setPosition(new Vec3(0, 110, 0));
+            current.active = true;
+            Tween.stopAllByTarget(current);
+            tween(current)
+                .to(0.1, { scale: new Vec3(0, 0, 1) })
+                .to(0.15, { scale: new Vec3(0.5, 0.5, 1) }, { easing: 'backOut' })
+                .to(0.1, { scale: new Vec3(0.4, 0.4, 1) })
+                .start();
+            this.scheduleOnce(hideCallback, 1.2);
         };
 
         if (hintSpriteFrame != null) {
@@ -505,10 +487,12 @@ export class GameSceneController extends Component {
         // TODO: 保存关卡进度
         this.saveLevelProgress();
 
+        const stars = this.calculateStars(this._moveCount);
         const payload: ResultPayload = {
             success: true,
             levelId: this._currentLevelId,
-            moveCount: this._moveCount
+            moveCount: this._moveCount,
+            stars
         };
         this.playWinBanner(() => {
             this._navManager?.showResultPopup(payload);
@@ -561,11 +545,23 @@ export class GameSceneController extends Component {
             this.winBannerLabelOpacity.opacity = 0;
         }
         bannerNode.active = true;
+        const bannerRootOpacity = bannerNode.getComponent(UIOpacity)!;
+        bannerRootOpacity.opacity = 255;
 
         tween(fillSprite)
             .to(GameSceneController.WIN_BANNER_FILL_TIME, { fillRange: 1 }, { easing: 'quadOut' })
             .delay(GameSceneController.WIN_BANNER_HOLD_TIME)
-            .call(onDone)
+            .call(() => {
+                Tween.stopAllByTarget(bannerRootOpacity);
+                tween(bannerRootOpacity)
+                    .to(GameSceneController.WIN_BANNER_FADE_OUT_TIME, { opacity: 0 }, { easing: 'quadOut' })
+                    .call(() => {
+                        bannerNode.active = false;
+                        bannerRootOpacity.opacity = 255;
+                        onDone();
+                    })
+                    .start();
+            })
             .start();
 
         if (this.winBannerLabelOpacity) {
@@ -588,16 +584,14 @@ export class GameSceneController extends Component {
         const stars = this.calculateStars(this._moveCount);
         setLevelStars(levelId, stars);
 
+        addProgressBarCleared();
+
         saveToStorage();
         console.log(`[GameSceneController] 保存关卡进度: ${levelId}, 下一关解锁至 ${nextLevel}, 星数 ${stars}`);
     }
 
-    private calculateStars(moveCount: number): number {
-        if (this._maxMoves <= 0) return 3;
-        const ratio = moveCount / this._maxMoves;
-        if (ratio <= 0.6) return 3;
-        if (ratio <= 0.8) return 2;
-        return 1;
+    private calculateStars(_moveCount: number): number {
+        return 3;
     }
 
     /**
@@ -608,7 +602,6 @@ export class GameSceneController extends Component {
         if (this._engine.undoMove()) {
             this._moveCount = this._engine.moveCount;
             this.syncBottlesFromEngine();
-            this.updateProgressBar();
         }
     }
 
@@ -629,10 +622,16 @@ export class GameSceneController extends Component {
     }
 
     /**
-     * 场景加载开始事件处理
+     * 场景加载开始事件处理：若切到游戏页则用 selectedLevelId 重载关卡（含从结算弹窗点下一关时同场景不跳转的情况）
      */
     private onSceneLoadStart = (data: any): void => {
-        console.log('[GameSceneController] 场景加载开始:', data.sceneName);
+        if (data.sceneName !== SceneName.GAME) {
+            return;
+        }
+        this._currentLevelId = this._navManager?.selectedLevelId || '';
+        if (this._currentLevelId) {
+            this.runGame().catch((err) => console.error('[GameSceneController] runGame 失败', err));
+        }
     };
 
     /**

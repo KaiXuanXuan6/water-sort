@@ -293,12 +293,13 @@ export class WaterSortEngine {
         }
 
         const bottles = this._levelData.bottles;
+        let hasNonEmpty = false;
 
         for (const bottle of bottles) {
-            // 空瓶子是合法的
             if (bottle.waters.length === 0) {
                 continue;
             }
+            hasNonEmpty = true;
 
             // 非空瓶子必须已满
             if (bottle.waters.length !== bottle.capacity) {
@@ -314,7 +315,7 @@ export class WaterSortEngine {
             }
         }
 
-        return true;
+        return hasNonEmpty;
     }
 
     /**

@@ -35,8 +35,6 @@ export interface LevelData {
     level: number;
     /** 瓶子列表 */
     bottles: BottleState[];
-    /** 最大移动步数（-1表示无限制） */
-    maxMoves: number;
     /** 关卡难度 */
     difficulty: 'easy' | 'medium' | 'hard' | 'expert';
     /** 背景图ID */

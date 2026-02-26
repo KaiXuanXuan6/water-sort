@@ -16,6 +16,10 @@ export interface UserProfileData {
     undoCount: number;
     /** 加管道具剩余次数 */
     addTubeCount: number;
+    /** 当前进度条已通关数（本段内） */
+    progressBarCleared: number;
+    /** 攒满本次进度条需要的通关数 */
+    progressBarTarget: number;
 }
 
 const STORAGE_KEY = 'water_sort_user_profile';
@@ -25,7 +29,9 @@ const DEFAULT_PROFILE: UserProfileData = {
     unlockedLevel: 1,
     levelStars: {},
     undoCount: -1,
-    addTubeCount: 0
+    addTubeCount: 0,
+    progressBarCleared: 0,
+    progressBarTarget: 8
 };
 
 let _profile: UserProfileData = { ...DEFAULT_PROFILE };
@@ -42,6 +48,22 @@ export function setLevelStars(levelId: string, stars: number): void {
     _profile.levelStars[levelId] = Math.min(3, Math.max(0, stars));
 }
 
+export function getProgressBarCleared(): number {
+    return _profile.progressBarCleared;
+}
+
+export function getProgressBarTarget(): number {
+    return _profile.progressBarTarget;
+}
+
+/** 胜利时调用：本段进度 +1，攒满则清零开始下一段 */
+export function addProgressBarCleared(): void {
+    _profile.progressBarCleared++;
+    if (_profile.progressBarCleared >= _profile.progressBarTarget) {
+        _profile.progressBarCleared = 0;
+    }
+}
+
 /** 从本地存储读取并合并到内存 */
 export function loadFromStorage(): UserProfileData {
     try {
@@ -54,7 +76,9 @@ export function loadFromStorage(): UserProfileData {
                 unlockedLevel: sanitizeNumber(parsed.unlockedLevel, 1, 1),
                 levelStars: (parsed.levelStars && typeof parsed.levelStars === 'object') ? parsed.levelStars : {},
                 undoCount: typeof parsed.undoCount === 'number' ? parsed.undoCount : -1,
-                addTubeCount: sanitizeNumber(parsed.addTubeCount, 0, 0)
+                addTubeCount: sanitizeNumber(parsed.addTubeCount, 0, 0),
+                progressBarCleared: sanitizeNumber(parsed.progressBarCleared, 0, 0),
+                progressBarTarget: sanitizeNumber(parsed.progressBarTarget, 8, 1)
             };
         }
     } catch (e) {

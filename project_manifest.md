@@ -253,7 +253,10 @@
 | Replay Button | Button | 重玩 | 可结合 HomeGame/ReplayBtn 或 Dialog |
 | Map Button | Button | 返回地图 | 同上 |
 | Home Button | Button | 返回首页 | 同上 |
-| Stars | Node[] | 星星节点数组（可选） | StarIcon.png |
+| Stars | Node[] | 星星节点数组（3 个，成功时播放从左下角由小变大再落位动画） | Result/star.png |
+| Progress Bar Bg | Sprite | 进度条背景 | Result/progress_bg.png |
+| Progress Bar Fill | Sprite | 进度条填充（Type=FILLED, Fill Type=HORIZONTAL） | Result/progress.png |
+| Progress Label | Label | 进度文案，如 "6/8" | 仅文案 |
 | Move Count Label | Label | 移动次数文案 | 仅占位，无对应图 |
 | Best Move Count Label | Label | 最少步数文案（可选） | 仅占位 |
 | Level Num Label | Label | 关卡号文案（可选） | 仅占位 |
@@ -272,7 +275,7 @@
 
 ### 进行中
 - 在 Cocos 编辑器中配置 scene（HomeRoot/MapRoot/GameRoot + RootViewSwitcher + NavigationManager + 各 Controller 绑定），游戏页瓶子区与预制体按 [step.md](step.md) 操作
-- GameRoot 胜利横幅（WinBanner）动画接入：胜利时横条从左到右填充，文本透明度从 0 到 1，并在动画后打开结算弹窗
+- GameRoot 胜利横幅（WinBanner）动画接入：横条填充→整体淡出→ResultPopup；ResultPopup 星星动画、进度条（Result/star、progress、progress_bg）已接入
 
 ### 待办
 - 实现 WaterShader 水体特效（可选）

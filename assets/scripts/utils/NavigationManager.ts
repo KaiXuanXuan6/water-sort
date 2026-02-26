@@ -185,7 +185,14 @@ export class NavigationManager extends Component {
         }
 
         if (sceneName === this._currentScene) {
-            console.warn('[NavigationManager] 已在目标场景中');
+            this.emit(NavigationEvent.SCENE_LOAD_START, {
+                event: NavigationEvent.SCENE_LOAD_START,
+                sceneName
+            });
+            this.emit(NavigationEvent.SCENE_LOAD_COMPLETE, {
+                event: NavigationEvent.SCENE_LOAD_COMPLETE,
+                sceneName
+            });
             return;
         }
 
