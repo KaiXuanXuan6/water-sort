@@ -53,8 +53,8 @@ export class SliderSwitch extends Component {
         }
     }
 
-    private onToggle(isChecked: boolean): void {
-        this.syncToState(isChecked, true);
+    private onToggle(toggle: Toggle): void {
+        this.syncToState(toggle.isChecked, true);
     }
 
     /**

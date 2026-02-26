@@ -588,8 +588,8 @@
     "onBg": {
       "__id__": 8
     },
-    "offX": -48,
-    "onX": 48,
+    "offX": -42,
+    "onX": 42,
     "slideDuration": 0.2,
     "bgFadeDuration": 0.2,
     "_id": ""
@@ -607,6 +607,7 @@
       "__id__": 0
     },
     "fileId": "32KPzLdpxIwKu1vdsv2j72",
+    "instance": null,
     "targetOverrides": null
   }
 ]

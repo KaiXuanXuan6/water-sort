@@ -181,16 +181,16 @@ export class SettingPopupController extends Component {
     /**
      * 音效开关切换
      */
-    private onSoundSwitch(isChecked: boolean): void {
-        setSoundEnabled(isChecked);
+    private onSoundSwitch(toggle: Toggle): void {
+        setSoundEnabled(toggle.isChecked);
     }
 
     /**
      * 音乐/震动开关切换
      */
-    private onMusicSwitch(isChecked: boolean): void {
-        setVibrationEnabled(isChecked);
-        if (isChecked) {
+    private onMusicSwitch(toggle: Toggle): void {
+        setVibrationEnabled(toggle.isChecked);
+        if (toggle.isChecked) {
             this.testVibration();
         }
     }
