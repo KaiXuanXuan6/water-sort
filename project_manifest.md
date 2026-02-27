@@ -274,14 +274,15 @@
 ## 5. 当前任务
 
 ### 进行中
-- 在 Cocos 编辑器中配置 scene（HomeRoot/MapRoot/GameRoot + RootViewSwitcher + NavigationManager + 各 Controller 绑定），游戏页瓶子区与预制体按 [step.md](step.md) 操作
-- GameRoot 胜利横幅（WinBanner）动画接入：横条填充→整体淡出→ResultPopup；ResultPopup 星星动画、进度条（Result/star、progress、progress_bg）已接入
+- （暂无）
 
 ### 待办
 - 实现 WaterShader 水体特效（可选）
 - GameSceneController 拆分：可选抽出 LevelRunner/GamePlayCoordinator，负责关卡数据+引擎+回合胜负，Controller 只做 UI 绑定与导航（见架构评审）
 
 ### 已完成
+- GameRoot 胜利横幅（WinBanner）动画接入：横条填充→整体淡出→ResultPopup；ResultPopup 星星动画、进度条（Result/star、progress、progress_bg）已接入
+- SettingPopup 动效冲突排查完成：移除 `PopInOutAnim` 及相关调用，当前仅通过 `node.active` 显隐（不再做 Widget 刷新与调度）
 - 首页 Start 进入游戏页（当前应玩关卡）、PlayButton 显示 "Level N"、UserProfile 默认 unlockedLevel=1；GameSceneController 无 selectedLevelId 时兜底 level_001
 - RootViewSwitcher 增加 bottomBar 绑定，进入游戏页隐藏 BottomBar；详细步骤写入 step.md
 - NavigationManager 使用 executionOrder(-100)，各 Controller/弹窗/RootViewSwitcher 在 start() 中重试获取 instance，解决预览时加载顺序问题

@@ -26,7 +26,7 @@
     "_active": true,
     "_components": [],
     "_prefab": {
-      "__id__": 244
+      "__id__": 243
     },
     "_lpos": {
       "__type__": "cc.Vec3",
@@ -57,7 +57,7 @@
     },
     "autoReleaseAssets": false,
     "_globals": {
-      "__id__": 249
+      "__id__": 248
     },
     "_id": "3b137278-0f72-456f-9096-d5b101c7e432"
   },
@@ -158,6 +158,9 @@
     "_active": true,
     "_components": [
       {
+        "__id__": 239
+      },
+      {
         "__id__": 240
       },
       {
@@ -165,9 +168,6 @@
       },
       {
         "__id__": 242
-      },
-      {
-        "__id__": 243
       }
     ],
     "_prefab": null,
@@ -7224,13 +7224,13 @@
     "_active": true,
     "_components": [
       {
+        "__id__": 236
+      },
+      {
         "__id__": 237
       },
       {
         "__id__": 238
-      },
-      {
-        "__id__": 239
       }
     ],
     "_prefab": null,
@@ -7295,9 +7295,6 @@
       },
       {
         "__id__": 235
-      },
-      {
-        "__id__": 236
       }
     ],
     "_prefab": null,
@@ -8087,7 +8084,7 @@
     "__prefab": null,
     "_alignFlags": 33,
     "_target": null,
-    "_left": 476.1666666666667,
+    "_left": 464.00000000000006,
     "_right": 0,
     "_top": -60,
     "_bottom": 0,
@@ -8195,24 +8192,6 @@
     "_alignMode": 2,
     "_lockFlags": 0,
     "_id": "60dIXvIaJDSpxd0dcc1qmp"
-  },
-  {
-    "__type__": "df42cB6u35M8rofAbaQ+39S",
-    "_name": "",
-    "_objFlags": 0,
-    "__editorExtras__": {},
-    "node": {
-      "__id__": 202
-    },
-    "_enabled": true,
-    "__prefab": null,
-    "restScale": 0.75,
-    "startScale": 0.1,
-    "endScale": 0.1,
-    "duration": 0.25,
-    "showEasing": "backOut",
-    "hideEasing": "sineIn",
-    "_id": "e2Uq8S67NLEarYXksX2aC8"
   },
   {
     "__type__": "cc.UITransform",
@@ -8389,10 +8368,10 @@
     "instance": null,
     "targetOverrides": [
       {
-        "__id__": 245
+        "__id__": 244
       },
       {
-        "__id__": 247
+        "__id__": 246
       }
     ],
     "nestedPrefabInstanceRoots": [
@@ -8416,7 +8395,7 @@
   {
     "__type__": "cc.TargetOverrideInfo",
     "source": {
-      "__id__": 238
+      "__id__": 237
     },
     "sourceInfo": null,
     "propertyPath": [
@@ -8426,7 +8405,7 @@
       "__id__": 207
     },
     "targetInfo": {
-      "__id__": 246
+      "__id__": 245
     }
   },
   {
@@ -8438,7 +8417,7 @@
   {
     "__type__": "cc.TargetOverrideInfo",
     "source": {
-      "__id__": 238
+      "__id__": 237
     },
     "sourceInfo": null,
     "propertyPath": [
@@ -8448,7 +8427,7 @@
       "__id__": 218
     },
     "targetInfo": {
-      "__id__": 248
+      "__id__": 247
     }
   },
   {
@@ -8460,28 +8439,28 @@
   {
     "__type__": "cc.SceneGlobals",
     "ambient": {
-      "__id__": 250
+      "__id__": 249
     },
     "shadows": {
-      "__id__": 251
+      "__id__": 250
     },
     "_skybox": {
-      "__id__": 252
+      "__id__": 251
     },
     "fog": {
-      "__id__": 253
+      "__id__": 252
     },
     "octree": {
-      "__id__": 254
+      "__id__": 253
     },
     "skin": {
-      "__id__": 255
+      "__id__": 254
     },
     "lightProbeInfo": {
-      "__id__": 256
+      "__id__": 255
     },
     "postSettings": {
-      "__id__": 257
+      "__id__": 256
     },
     "bakedWithStationaryMainLight": false,
     "bakedWithHighpLightmap": false

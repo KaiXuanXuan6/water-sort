@@ -1,7 +1,6 @@
 import { _decorator, Component, Node, Button, Toggle } from 'cc';
 import { NavigationManager, NavigationEvent, PopupName } from '../utils/NavigationManager';
 import { loadFromStorage, getSoundEnabled, setSoundEnabled, getVibrationEnabled, setVibrationEnabled } from '../data/UserProfile';
-import { PopInOutAnim } from '../animation/PopInOutAnim';
 
 const { ccclass, property } = _decorator;
 
@@ -50,11 +49,6 @@ export class SettingPopupController extends Component {
             return;
         }
 
-        // 初始隐藏弹窗（无动画，避免播消失动画）
-        const anim = this.getPopInOutAnim();
-        if (anim) {
-            anim.setToHiddenState();
-        }
         this._isShowed = false;
         this.node.active = false;
 
@@ -134,47 +128,25 @@ export class SettingPopupController extends Component {
     }
 
     /**
-     * 显示弹窗（带从小到大的缩放动画）
+     * 显示弹窗
      */
     public show(): void {
         this._isShowed = true;
         this.node.active = true;
         this.updateUI();
-
-        const anim = this.getPopInOutAnim();
-        if (anim) {
-            anim.playShow();
-        }
     }
 
     /**
-     * 隐藏弹窗（播缩小动画后关闭）
+     * 隐藏弹窗
      */
     public hide(): void {
-        const anim = this.getPopInOutAnim();
-        if (anim) {
-            anim.playHide(() => {
-                this.finishHide();
-            });
-        } else {
-            this.finishHide();
-        }
+        this.finishHide();
     }
 
     private finishHide(): void {
         this._isShowed = false;
         this.node.active = false;
         this._navManager?.closePopup();
-    }
-
-    /**
-     * 获取弹窗内容上的 PopInOutAnim
-     */
-    private getPopInOutAnim(): PopInOutAnim | null {
-        if (this.contentNode) {
-            return this.contentNode.getComponent(PopInOutAnim)
-        }
-        return null;
     }
 
     /**
