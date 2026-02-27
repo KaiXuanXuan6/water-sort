@@ -1099,7 +1099,7 @@
     "fileId": "8adjHGUQNKQ6v5Gh0z8CZi"
   },
   {
-    "__type__": "267eeQm0uFAJofMHiPJdcnk",
+    "__type__": "17352R+qfxFdLLOQPkklyjC",
     "_name": "",
     "_objFlags": 0,
     "__editorExtras__": {},
@@ -1110,13 +1110,13 @@
     "__prefab": {
       "__id__": 49
     },
-    "bottleBgNode": {
+    "backgroundBgNode": {
       "__id__": 2
     },
-    "bottleBg2Node": {
+    "backgroundBg2Node": {
       "__id__": 10
     },
-    "bottleSprite": {
+    "backgroundSprite": {
       "__id__": 21
     },
     "lockNode": {
@@ -1128,12 +1128,11 @@
     "checkinNode": {
       "__id__": 31
     },
-    "rotateDuration": 0.2,
     "_id": ""
   },
   {
     "__type__": "cc.CompPrefabInfo",
-    "fileId": "13D5UTBNdExqRKnYlGIdIj"
+    "fileId": "314b/Spi1OYqfHm0bfD9+y"
   },
   {
     "__type__": "cc.PrefabInfo",

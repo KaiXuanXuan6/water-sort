@@ -16,14 +16,13 @@ export type OnBackgroundLockClick = (bgId: number) => void;
 @ccclass('BackgroundBlockController')
 export class BackgroundBlockController extends Component {
     @property(Node)
-    bottleBgNode: Node | null = null;
+    backgroundBgNode: Node | null = null;
 
-    /** 未解锁时显示的背景（与 BottleBlock 的 bottleBg2 类似） */
     @property(Node)
-    bottleBg2Node: Node | null = null;
+    backgroundBg2Node: Node | null = null;
 
     @property(Sprite)
-    bottleSprite: Sprite | null = null;
+    backgroundSprite: Sprite | null = null;
 
     @property(Node)
     lockNode: Node | null = null;
@@ -33,9 +32,6 @@ export class BackgroundBlockController extends Component {
 
     @property(Node)
     checkinNode: Node | null = null;
-
-    @property
-    rotateDuration = 0.2;
 
     private _bgId = 1;
     private _isUnlocked = true;
@@ -66,9 +62,9 @@ export class BackgroundBlockController extends Component {
         if (this._isSelected === selected) return;
         this._isSelected = selected;
         this.applyVisuals();
-        if (selected && this.bottleSprite) {
-            let anim = this.bottleSprite.node.getComponent(BouncePopAnim);
-            if (!anim) anim = this.bottleSprite.node.addComponent(BouncePopAnim);
+        if (selected && this.backgroundSprite) {
+            let anim = this.backgroundSprite.node.getComponent(BouncePopAnim);
+            if (!anim) anim = this.backgroundSprite.node.addComponent(BouncePopAnim);
             anim.play();
         }
         if (selected && this.checkinNode) {
@@ -91,31 +87,31 @@ export class BackgroundBlockController extends Component {
     }
 
     private async setupImage(): Promise<void> {
-        if (!this.bottleSprite) return;
+        if (!this.backgroundSprite) return;
         const frame = await AssetLoader.loadBackgroundSprite(this._bgId);
-        if (frame && this.bottleSprite.isValid) {
-            this.bottleSprite.spriteFrame = frame;
+        if (frame && this.backgroundSprite.isValid) {
+            this.backgroundSprite.spriteFrame = frame;
             this.fitImageInBlock();
         }
     }
 
     private fitImageInBlock(): void {
-        if (!this.bottleSprite) return;
-        const blockUT = this.bottleBgNode?.getComponent(UITransform) ?? this.node.getComponent(UITransform);
-        const imgUT = this.bottleSprite.node.getComponent(UITransform);
+        if (!this.backgroundSprite) return;
+        const blockUT = this.backgroundBgNode?.getComponent(UITransform) ?? this.node.getComponent(UITransform);
+        const imgUT = this.backgroundSprite.node.getComponent(UITransform);
         if (!blockUT || !imgUT) return;
         const blockW = blockUT.contentSize.width;
         const blockH = blockUT.contentSize.height;
         let imgW = imgUT.contentSize.width;
         let imgH = imgUT.contentSize.height;
-        if ((imgW <= 0 || imgH <= 0) && this.bottleSprite.spriteFrame) {
-            const rect = this.bottleSprite.spriteFrame.rect;
+        if ((imgW <= 0 || imgH <= 0) && this.backgroundSprite.spriteFrame) {
+            const rect = this.backgroundSprite.spriteFrame.rect;
             imgW = rect.width;
             imgH = rect.height;
         }
         if (imgW <= 0 || imgH <= 0) return;
-        const scale = Math.min(blockW / imgW, blockH / imgH, 1) * 0.5;
-        this.bottleSprite.node.setScale(scale, scale, 1);
+        const scale = Math.min(blockW / imgW, blockH / imgH, 1) * 0.9;
+        this.backgroundSprite.node.setScale(scale, scale, 1);
     }
 
     private playLockBounceAnim(): void {
@@ -148,8 +144,8 @@ export class BackgroundBlockController extends Component {
     }
 
     private applyVisuals(): void {
-        if (this.bottleBgNode) this.bottleBgNode.active = this._isUnlocked;
-        if (this.bottleBg2Node) this.bottleBg2Node.active = !this._isUnlocked;
+        if (this.backgroundBgNode) this.backgroundBgNode.active = this._isUnlocked;
+        if (this.backgroundBg2Node) this.backgroundBg2Node.active = !this._isUnlocked;
         if (this.lockNode) this.lockNode.active = !this._isUnlocked;
         if (this.checkboxNode) this.checkboxNode.active = this._isUnlocked;
         if (this.checkinNode) this.checkinNode.active = this._isUnlocked && this._isSelected;
