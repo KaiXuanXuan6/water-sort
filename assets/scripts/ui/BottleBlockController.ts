@@ -82,6 +82,11 @@ export class BottleBlockController extends Component {
                 .to(this.rotateDuration, { eulerAngles: new Vec3(0, 0, targetAngle) }, { easing: 'backOut' })
                 .start();
         }
+        if (selected && this.checkinNode) {
+            let anim = this.checkinNode.getComponent(BouncePopAnim);
+            if (!anim) anim = this.checkinNode.addComponent(BouncePopAnim);
+            anim.play();
+        }
     }
 
     public get bottleType(): number {

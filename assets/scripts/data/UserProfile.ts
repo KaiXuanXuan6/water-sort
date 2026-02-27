@@ -42,7 +42,7 @@ const DEFAULT_PROFILE: UserProfileData = {
     addTubeCount: 1,
     progressBarCleared: 0,
     progressBarTarget: 8,
-    unlockedBottleTypes: [1],
+    unlockedBottleTypes: [1, 2],
     selectedBottleType: 1
 };
 
@@ -111,7 +111,7 @@ export function loadFromStorage(): UserProfileData {
                 addTubeCount: sanitizeNumber(parsed.addTubeCount, 0, 0),
                 progressBarCleared: sanitizeNumber(parsed.progressBarCleared, 0, 0),
                 progressBarTarget: sanitizeNumber(parsed.progressBarTarget, 8, 1),
-                unlockedBottleTypes: Array.isArray(parsed.unlockedBottleTypes) ? parsed.unlockedBottleTypes.filter((n): n is number => typeof n === 'number') : [1],
+                unlockedBottleTypes: Array.isArray(parsed.unlockedBottleTypes) ? parsed.unlockedBottleTypes.filter((n): n is number => typeof n === 'number') : [1, 2],
                 selectedBottleType: sanitizeNumber(parsed.selectedBottleType, 1, 1)
             };
         }

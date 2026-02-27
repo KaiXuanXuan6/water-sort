@@ -54,8 +54,10 @@ export class CollectionSceneController extends Component {
             this.selectBoxNode.removeFromParent();
             container.addChild(this.selectBoxNode);
         }
-        if (this.bottleScrollView) this.bottleScrollView.scrollToTop(0);
-        this.scheduleOnce(() => this.refreshSelectBoxPosition(), 0);
+        this.scheduleOnce(() => {
+            if (this.bottleScrollView) this.bottleScrollView.scrollToTop(0);
+            this.refreshSelectBoxPosition();
+        }, 0);
     }
 
     protected start(): void {
