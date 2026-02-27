@@ -1,4 +1,4 @@
-import { _decorator, Component, Node, Button, Toggle } from 'cc';
+import { _decorator, Component, Node, Button, Toggle, tween, Vec3 } from 'cc';
 import { NavigationManager, NavigationEvent, PopupName } from '../utils/NavigationManager';
 import { loadFromStorage, getSoundEnabled, setSoundEnabled, getVibrationEnabled, setVibrationEnabled } from '../data/UserProfile';
 
@@ -134,6 +134,14 @@ export class SettingPopupController extends Component {
         this._isShowed = true;
         this.node.active = true;
         this.updateUI();
+
+        // Dialog 出现动画：从 scale 0 到 scale 0.75，带 backOut 回弹效果
+        if (this.contentNode) {
+            this.contentNode.setScale(0, 0, 0);
+            tween(this.contentNode)
+                .to(0.3, { scale: new Vec3(0.75, 0.75, 0.75) }, { easing: 'backOut' })
+                .start();
+        }
     }
 
     /**
@@ -153,8 +161,8 @@ export class SettingPopupController extends Component {
      * 弹窗打开事件处理
      */
     private onPopupOpen = (data: any): void => {
+        console.log('[SettingPopupController] 收到 POPUP_OPEN 事件:', data?.popupName);
         if (data.popupName === PopupName.SETTINGS) {
-            console.log('[SettingPopupController] 收到打开设置弹窗请求');
             this.show();
         }
     };

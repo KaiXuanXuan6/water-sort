@@ -180,6 +180,16 @@
 | Game Root | Node | 拖入 GameRoot 节点 |
 | Bottom Bar | Node | 拖入 BottomBar 节点；进入游戏页时隐藏，首页/地图页/收集页时显示 |
 
+### 4.1.1 BottomBarController（BottomBar 节点）
+
+| 属性 | 类型 | 说明 |
+|------|------|------|
+| Home Button | Node | 拖入 HomeButton 节点（可选，未绑定则按名称查找） |
+| Map Button | Node | 拖入 MapButton 节点（可选） |
+| Collection Button | Node | 拖入 CollectionButton 节点（可选） |
+
+根据当前 root 放大对应图标并显示深蓝背景。可选：为 HomeButton、MapButton、CollectionButton 各添加子节点 `HighlightBg`（Sprite，置于最前/索引 0，默认 active 关闭），用于高亮背景；未配置时仅生效缩放。
+
 ### 4.2 NavigationManager（NavigationManager 节点）
 
 无需绑定属性。
