@@ -1,7 +1,8 @@
-import { _decorator, Component, Node, Button, ScrollView, Label, UITransform } from 'cc';
+import { _decorator, Component, Node, Button, ScrollView, Label, UITransform, Prefab, instantiate } from 'cc';
 import { NavigationManager, NavigationEvent } from '../utils/NavigationManager';
 import { LevelConfig } from '../data/LevelConfig';
 import { loadFromStorage, getUnlockedLevel, setUnlockedLevel, saveToStorage } from '../data/UserProfile';
+import { LevelItemController } from './LevelItemController';
 
 const { ccclass, property } = _decorator;
 
@@ -29,8 +30,8 @@ export class MapSceneController extends Component {
     @property(Node)
     levelListContainer: Node | null = null;
 
-    @property(Node)
-    levelItemPrefab: Node | null = null;
+    @property(Prefab)
+    levelItemPrefab: Prefab | null = null;
 
     @property({ tooltip: '无预制体时关卡按钮间距' })
     levelButtonSpacing: number = 90;
@@ -142,9 +143,28 @@ export class MapSceneController extends Component {
     }
 
     /**
-     * 创建单个关卡按钮（无预制体时动态创建 Button + Label；有预制体需类型为 Prefab 并实例化）
+     * 创建单个关卡按钮（有预制体时实例化并设置三态；无预制体时动态创建 Button + Label）
      */
     private createLevelButton(data: LevelButtonData): Node | null {
+        if (this.levelItemPrefab) {
+            const btnNode = instantiate(this.levelItemPrefab);
+            btnNode.name = `Level_${data.levelNum}`;
+            let ctrl = btnNode.getComponent(LevelItemController);
+            if (!ctrl) {
+                ctrl = btnNode.addComponent(LevelItemController);
+            }
+            ctrl.setData(
+                { levelNum: data.levelNum, isUnlocked: data.isUnlocked },
+                this._unlockedLevel
+            );
+            const btn = btnNode.getComponent(Button);
+            if (btn) {
+                btn.node.on(Button.EventType.CLICK, () => this.onLevelClick(data), this);
+                btn.interactable = data.isUnlocked;
+            }
+            return btnNode;
+        }
+
         const btnNode = new Node(`Level_${data.levelNum}`);
         const transform = btnNode.addComponent(UITransform);
         transform.setContentSize(80, 80);
