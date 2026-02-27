@@ -45,13 +45,16 @@
 | 层级（从底到顶） | 说明 | 素材/来源 |
 |------------------|------|-----------|
 | 根节点 | 瓶子块容器，挂 Button 或触摸 | 用于点击整块（解锁时） |
-| bottle_bg | 背景 | resources/Collection/bottle_bg（当前项目内为 Collection 下） |
+| bottle_bg | 已解锁时背景 | resources/Collection/bottle_bg |
+| bottle_bg2 | 未解锁时背景（不规则形状，替代矩形 mask） | resources/Collection/bottle_bg2 |
 | bottle | 瓶子图 | AssetLoader.loadBottleSprite(bottleType, 1) → Bottles/${bottleType}_1 |
-| mask（可选） | 仅未解锁时显示，盖在瓶子上 | 全屏半透明暗色 Sprite 或 Graphics，无图则用 Color(0,0,0,128) |
 | lock | 仅未解锁时显示 | resources/Collection/lock.png |
-| checkbox | 仅解锁时显示 | resources/Collection/checkbox.png 未勾选，checkin.png 勾选 |
+| checkbox | 仅解锁时显示，未勾选时显示 | resources/Collection/checkbox.png |
+| checkbox/checkin | checkbox 的子节点，勾选时显示 | resources/Collection/checkin.png |
 
-- 层级顺序：bottle_bg → bottle → mask + lock（未解锁）→ checkbox（解锁时）。
+- 层级顺序：bottle_bg + bottle_bg2（二选一显隐）→ bottle → lock（未解锁）→ checkbox（解锁时，其下子节点 checkin 为勾选态）。
+- **未解锁态**：显示 bottle_bg2（不规则背景）、不显示 bottle_bg，避免用矩形 mask 覆盖不规则背景。
+- **BottleBlockController** 仅通过编辑器绑定引用上述节点，不使用 getChildByName。
 
 ### 3.2 交互逻辑（脚本控制）
 
@@ -59,13 +62,14 @@
   - 点击整块：播放「瓶子元素旋转 45°」动画，并将该块设为选中（checkbox 显示 checkin，其余块恢复未选中 + 0°）。
   - checkbox 仅在此态显示；未选中显示 checkbox，选中显示 checkin。
 - **未解锁**
-  - 整块带暗色遮罩；锁图标显示（无 Label 文案）。
+  - 背景为 bottle_bg2（未解锁专用背景）；锁图标显示（无 Label 文案）。
   - 仅点击**锁图标**时：播放 BouncePopAnim（复用现有 `play()`）；整块点击可无反应或仅提示。
 
 ### 3.3 新建脚本
 
 - **BottleBlockController**（挂到瓶子块 prefab 根上）
-  - 职责：根据 `bottleType`、解锁状态、选中状态刷新子节点显隐与贴图（背景、瓶子、mask、lock、checkbox/checkin）；处理点击（整块 / 锁）并调用动画与选中回调。
+  - 职责：根据 `bottleType`、解锁状态、选中状态刷新子节点显隐与贴图（bottle_bg / bottle_bg2 二选一、瓶子、lock、checkbox 与 checkin）；处理点击（整块 / 锁）并调用动画与选中回调。
+  - 所有子节点通过 **@property 绑定**，不使用 getChildByName。绑定项：bottleBgNode、bottleBg2Node、bottleSprite、lockNode、checkboxNode、checkinNode。
   - 入参：`bottleType: number`、`isUnlocked: boolean`（由调用方从 UserProfile 传入）。
   - 对外：通过回调或事件通知「选中该类型」或「点击了锁」，由 CollectionSceneController 更新 UserProfile.selectedBottleType 并刷新所有块。
 
@@ -115,7 +119,8 @@
 
 | 资源 | 路径 | 用途 |
 |------|------|------|
-| 瓶子块背景 | Collection/bottle_bg | 块背景 |
+| 瓶子块背景（已解锁） | Collection/bottle_bg | 已解锁时块背景 |
+| 瓶子块背景（未解锁） | Collection/bottle_bg2 | 未解锁时块背景（不规则，替代 mask） |
 | 瓶子图 | Bottles/{bottleType}_1 | 块内瓶子元素 |
 | 锁 | Collection/lock.png | 未解锁时锁图标 |
 | 勾选前 | Collection/checkbox.png | 解锁时未选中 |
@@ -127,5 +132,5 @@
 ## 6. 实现顺序建议
 
 1. **数据**：扩展 UserProfile 的 `unlockedBottleTypes`（默认 `[1]`）、`selectedBottleType`（默认 `1`）及 get/set/isUnlocked；选中时写入 `setSelectedBottleType` 并持久化。
-2. **Prefab**：在编辑器中搭好瓶子块层级（bottle_bg → bottle → mask → lock → checkbox，无 Label）；做成 Prefab，新建 BottleBlockController 挂到 prefab 根上，实现显隐、贴图、旋转 45° 动画、锁点击 BouncePopAnim、选中回调。
+2. **Prefab**：在编辑器中搭好瓶子块层级（bottle_bg、bottle_bg2 二选一显隐 → bottle → lock → checkbox，无 Label）；做成 Prefab，新建 BottleBlockController 挂到 prefab 根上，实现显隐、贴图、旋转 45° 动画、锁点击 BouncePopAnim、选中回调。
 3. **场景**：CollectionRoot 下确保 BottleButton 默认激活、ScrollView 的 Content 挂 Layout（每行 3 列），SelectBox 节点（select_box 图）与 Content 同层级；CollectionSceneController 绑定 ScrollView、Content、BottleBlock Prefab、SelectBox，在 onLoad/start 中根据 1～48 与 UserProfile 生成块并注入数据与回调，选中后更新 UserProfile、刷新所有块，并驱动 select_box 首次出现及 tween 移动到当前选中块。

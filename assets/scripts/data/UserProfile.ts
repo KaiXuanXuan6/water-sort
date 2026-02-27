@@ -24,6 +24,10 @@ export interface UserProfileData {
     progressBarCleared: number;
     /** 攒满本次进度条需要的通关数 */
     progressBarTarget: number;
+    /** 已解锁的瓶子类型 ID 列表，默认只解锁第一种 */
+    unlockedBottleTypes: number[];
+    /** 当前选中的瓶子类型（用户当前使用的瓶子，一次只能一种），持久化 */
+    selectedBottleType: number;
 }
 
 const STORAGE_KEY = 'water_sort_user_profile';
@@ -37,7 +41,9 @@ const DEFAULT_PROFILE: UserProfileData = {
     undoCount: 3,
     addTubeCount: 1,
     progressBarCleared: 0,
-    progressBarTarget: 8
+    progressBarTarget: 8,
+    unlockedBottleTypes: [1],
+    selectedBottleType: 1
 };
 
 let _profile: UserProfileData = { ...DEFAULT_PROFILE };
@@ -104,7 +110,9 @@ export function loadFromStorage(): UserProfileData {
                 undoCount: typeof parsed.undoCount === 'number' ? parsed.undoCount : -1,
                 addTubeCount: sanitizeNumber(parsed.addTubeCount, 0, 0),
                 progressBarCleared: sanitizeNumber(parsed.progressBarCleared, 0, 0),
-                progressBarTarget: sanitizeNumber(parsed.progressBarTarget, 8, 1)
+                progressBarTarget: sanitizeNumber(parsed.progressBarTarget, 8, 1),
+                unlockedBottleTypes: Array.isArray(parsed.unlockedBottleTypes) ? parsed.unlockedBottleTypes.filter((n): n is number => typeof n === 'number') : [1],
+                selectedBottleType: sanitizeNumber(parsed.selectedBottleType, 1, 1)
             };
         }
     } catch (e) {
@@ -161,6 +169,40 @@ export function getUndoCount(): number {
 
 export function getAddTubeCount(): number {
     return _profile.addTubeCount;
+}
+
+/** 获取已解锁的瓶子类型列表 */
+export function getUnlockedBottleTypes(): number[] {
+    return _profile.unlockedBottleTypes.slice();
+}
+
+/** 设置已解锁的瓶子类型列表 */
+export function setUnlockedBottleTypes(types: number[]): void {
+    _profile.unlockedBottleTypes = types.filter((n) => typeof n === 'number');
+    saveToStorage();
+}
+
+/** 添加一个已解锁的瓶子类型 */
+export function addUnlockedBottleType(typeId: number): void {
+    if (_profile.unlockedBottleTypes.indexOf(typeId) >= 0) return;
+    _profile.unlockedBottleTypes.push(typeId);
+    saveToStorage();
+}
+
+/** 是否已解锁该瓶子类型 */
+export function isBottleTypeUnlocked(bottleType: number): boolean {
+    return _profile.unlockedBottleTypes.indexOf(bottleType) >= 0;
+}
+
+/** 获取当前选中的瓶子类型 */
+export function getSelectedBottleType(): number {
+    return _profile.selectedBottleType;
+}
+
+/** 设置当前选中的瓶子类型并持久化 */
+export function setSelectedBottleType(typeId: number): void {
+    _profile.selectedBottleType = typeId;
+    saveToStorage();
 }
 
 function sanitizeNumber(val: unknown, defaultVal: number, min: number): number {

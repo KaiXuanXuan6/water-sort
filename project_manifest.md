@@ -44,11 +44,12 @@
 - [ ] 版本号显示
 - [x] 编写 SettingPopupController 脚本
 
-### 1.6 收集页 (CollectionScene) - 20%
+### 1.6 收集页 (CollectionScene) - 50%
 - [ ] 在现有 scene 中搭建 CollectionRoot 视图结构（单场景模式），详见 [step.md](step.md) 第一节
-- [ ] 实现玩家已解锁瓶子图鉴展示（占位或列表/网格）
+- [x] 瓶子图鉴逻辑：UserProfile 扩展（unlockedBottleTypes、selectedBottleType）、BottleBlockController、CollectionSceneController 网格生成与 SelectBox tween（见 collection_bottle_scrollview_plan.md）
+- [ ] 编辑器中：创建瓶子块 Prefab（bottle_bg / bottle_bg2 二选一显隐 → bottle → lock → checkbox，无 mask）；挂 BottleBlockController；Content 挂 Layout 每行 3 列；绑定 bottleBlockPrefab、selectBoxNode、bottleGridContainer/ScrollView
 - [ ] 添加返回入口（由 BottomBar 或页面内返回按钮返回首页）
-- [x] 编写 CollectionSceneController 脚本（占位绑定，后续接入解锁数据）
+- [x] 编写 CollectionSceneController 脚本（已接入解锁数据与选中框）
 
 ---
 
@@ -71,6 +72,7 @@
 - [x] UserProfile.ts
   - [x] 定义用户档案接口 (UserProfileData)
   - [x] 当前关卡进度、已解锁关卡、道具数量（默认 unlockedLevel = 1，从第一关开始）
+  - [x] 收集页：unlockedBottleTypes（默认 [1]）、selectedBottleType（默认 1）及 get/set/isBottleTypeUnlocked
   - [x] 内存读写 get/set、loadFromStorage/saveToStorage
   - [x] 本地存储持久化（sys.localStorage）
 
