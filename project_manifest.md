@@ -279,6 +279,31 @@
 | Sound Toggle | Toggle | 音效开关 | SoundBtn.png |
 | Vibration Toggle | Toggle | 震动开关 | MusicBtn.png（或同风格图） |
 | Version Label | Label | 版本号显示 | 仅文案，无对应图 |
+
+### 4.9 MainBg 下 ButtonBar 布局（按钮间距与右侧边距固定）
+
+目标：两个按钮之间间距固定，按钮整体与 MainBg 右侧距离固定，按钮尺寸不变。
+
+**步骤（在 Cocos Creator 编辑器中操作）：**
+
+1. **ButtonBar 节点**
+   - 选中 **ButtonBar**（MainBg 下的按钮容器）。
+   - **添加组件 → UI → Widget**（若已有可跳过）  
+     - 勾选 **Align Right**，**Right** 设为固定值（如 `20`），表示与父节点（MainBg 或当前父节点）右边缘的固定距离。  
+     - 根据需要勾选 **Align Top / Align Bottom** 或 **Align Vertical Center** 以固定垂直位置。
+   - **添加组件 → UI → Layout**  
+     - **Type**：`HORIZONTAL`  
+     - **Spacing X**：固定间距（如 `20`），即两按钮之间的固定距离。  
+     - **Horizontal Direction**：`RIGHT_TO_LEFT`，使最右侧按钮贴齐 ButtonBar 右边缘，向左依次排列。  
+     - **Resize Mode**：`CONTAINER`，ButtonBar 宽度随子节点总宽度 + 间距自适应。  
+     - **Child Alignment**：垂直方向选 `CENTER` 或按需选择。
+
+2. **按钮子节点（两个 SemiCircleButton 等）**
+   - 若子节点上挂了 **Widget** 且设置了 Left/Right，会与 Layout 的排布冲突，建议**去掉**子节点的 Widget，或只保留垂直方向对齐（如 Top/Bottom），由 Layout 负责水平排布。  
+   - 保证每个按钮节点的 **UITransform** 尺寸为固定值（或由子节点内容决定），Layout 不会改变子节点尺寸，只按固定间距排布。
+
+效果：ButtonBar 整体距 MainBg 右侧固定；内部两按钮保持固定尺寸、固定间距，并整体靠右排列。
+
 ---
 
 ## 5. 当前任务
