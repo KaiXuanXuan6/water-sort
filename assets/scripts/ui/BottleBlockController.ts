@@ -1,4 +1,4 @@
-import { _decorator, Component, Node, Sprite, Button, tween, Vec3, UITransform } from 'cc';
+import { _decorator, Component, Node, Sprite, Button, tween, Vec3, UITransform, Color } from 'cc';
 import { AssetLoader } from '../utils/AssetLoader';
 import { BouncePopAnim } from '../animation/BouncePopAnim';
 
@@ -161,10 +161,16 @@ export class BottleBlockController extends Component {
         if (this._onLockClick) this._onLockClick(this._bottleType);
     }
 
+    /** 未解锁时主图使用的灰度（Sprite.color 乘色） */
+    private static readonly LOCKED_GRAY = new Color(128, 128, 128, 255);
+
     private applyVisuals(): void {
-        if (this.bottleBgNode) this.bottleBgNode.active = this._isUnlocked;
-        if (this.bottleBg2Node) this.bottleBg2Node.active = !this._isUnlocked;
+        if (this.bottleBgNode) this.bottleBgNode.active = true;
+        if (this.bottleBg2Node) this.bottleBg2Node.active = false;
         if (this.lockNode) this.lockNode.active = !this._isUnlocked;
+        if (this.bottleSprite) {
+            this.bottleSprite.color = this._isUnlocked ? Color.WHITE : BottleBlockController.LOCKED_GRAY;
+        }
 
         if (this.checkboxNode) this.checkboxNode.active = this._isUnlocked;
         if (this.checkinNode) this.checkinNode.active = this._isUnlocked && this._isSelected;

@@ -1,4 +1,4 @@
-import { _decorator, Component, Node, Sprite, Button, UITransform } from 'cc';
+import { _decorator, Component, Node, Sprite, Button, UITransform, Color } from 'cc';
 import { AssetLoader } from '../utils/AssetLoader';
 import { BouncePopAnim } from '../animation/BouncePopAnim';
 
@@ -11,7 +11,6 @@ export type OnBackgroundLockClick = (bgId: number) => void;
 
 /**
  * 收集页背景块控制器
- * 与 BottleBlock 类似：有 bg2、锁与锁动画；未解锁时显示 bg2；选中时对背景图节点播放 BouncePopAnim（无旋转）。
  */
 @ccclass('BackgroundBlockController')
 export class BackgroundBlockController extends Component {
@@ -62,11 +61,6 @@ export class BackgroundBlockController extends Component {
         if (this._isSelected === selected) return;
         this._isSelected = selected;
         this.applyVisuals();
-        if (selected && this.backgroundSprite) {
-            let anim = this.backgroundSprite.node.getComponent(BouncePopAnim);
-            if (!anim) anim = this.backgroundSprite.node.addComponent(BouncePopAnim);
-            anim.play();
-        }
         if (selected && this.checkinNode) {
             let anim = this.checkinNode.getComponent(BouncePopAnim);
             if (!anim) anim = this.checkinNode.addComponent(BouncePopAnim);
@@ -110,8 +104,9 @@ export class BackgroundBlockController extends Component {
             imgH = rect.height;
         }
         if (imgW <= 0 || imgH <= 0) return;
-        const scale = Math.min(blockW / imgW, blockH / imgH, 1) * 0.9;
-        this.backgroundSprite.node.setScale(scale, scale, 1);
+        const scaleX = blockW / imgW * 0.85;
+        const scaleY = blockH / imgH * 0.85;
+        this.backgroundSprite.node.setScale(scaleX, scaleY, 1);
     }
 
     private playLockBounceAnim(): void {
@@ -143,10 +138,16 @@ export class BackgroundBlockController extends Component {
         if (this._onLockClick) this._onLockClick(this._bgId);
     }
 
+    /** 未解锁时主图使用的灰度（Sprite.color 乘色） */
+    private static readonly LOCKED_GRAY = new Color(128, 128, 128, 255);
+
     private applyVisuals(): void {
-        if (this.backgroundBgNode) this.backgroundBgNode.active = this._isUnlocked;
-        if (this.backgroundBg2Node) this.backgroundBg2Node.active = !this._isUnlocked;
+        if (this.backgroundBgNode) this.backgroundBgNode.active = true;
+        if (this.backgroundBg2Node) this.backgroundBg2Node.active = false;
         if (this.lockNode) this.lockNode.active = !this._isUnlocked;
+        if (this.backgroundSprite) {
+            this.backgroundSprite.color = this._isUnlocked ? Color.WHITE : BackgroundBlockController.LOCKED_GRAY;
+        }
         if (this.checkboxNode) this.checkboxNode.active = this._isUnlocked;
         if (this.checkinNode) this.checkinNode.active = this._isUnlocked && this._isSelected;
     }
