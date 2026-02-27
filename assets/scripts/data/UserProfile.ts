@@ -28,6 +28,10 @@ export interface UserProfileData {
     unlockedBottleTypes: number[];
     /** 当前选中的瓶子类型（用户当前使用的瓶子，一次只能一种），持久化 */
     selectedBottleType: number;
+    /** 已解锁的背景 ID 列表 */
+    unlockedBackgroundTypes: number[];
+    /** 当前选中的背景 ID，持久化 */
+    selectedBackgroundType: number;
 }
 
 const STORAGE_KEY = 'water_sort_user_profile';
@@ -43,7 +47,9 @@ const DEFAULT_PROFILE: UserProfileData = {
     progressBarCleared: 0,
     progressBarTarget: 8,
     unlockedBottleTypes: [1, 2],
-    selectedBottleType: 1
+    selectedBottleType: 1,
+    unlockedBackgroundTypes: [1, 2],
+    selectedBackgroundType: 1
 };
 
 let _profile: UserProfileData = { ...DEFAULT_PROFILE };
@@ -112,7 +118,9 @@ export function loadFromStorage(): UserProfileData {
                 progressBarCleared: sanitizeNumber(parsed.progressBarCleared, 0, 0),
                 progressBarTarget: sanitizeNumber(parsed.progressBarTarget, 8, 1),
                 unlockedBottleTypes: Array.isArray(parsed.unlockedBottleTypes) ? parsed.unlockedBottleTypes.filter((n): n is number => typeof n === 'number') : [1, 2],
-                selectedBottleType: sanitizeNumber(parsed.selectedBottleType, 1, 1)
+                selectedBottleType: sanitizeNumber(parsed.selectedBottleType, 1, 1),
+                unlockedBackgroundTypes: Array.isArray(parsed.unlockedBackgroundTypes) ? parsed.unlockedBackgroundTypes.filter((n): n is number => typeof n === 'number') : [1, 2],
+                selectedBackgroundType: sanitizeNumber(parsed.selectedBackgroundType, 1, 1)
             };
         }
     } catch (e) {
@@ -202,6 +210,22 @@ export function getSelectedBottleType(): number {
 /** 设置当前选中的瓶子类型并持久化 */
 export function setSelectedBottleType(typeId: number): void {
     _profile.selectedBottleType = typeId;
+    saveToStorage();
+}
+
+/** 是否已解锁该背景类型 */
+export function isBackgroundTypeUnlocked(bgType: number): boolean {
+    return _profile.unlockedBackgroundTypes.indexOf(bgType) >= 0;
+}
+
+/** 获取当前选中的背景类型 */
+export function getSelectedBackgroundType(): number {
+    return _profile.selectedBackgroundType;
+}
+
+/** 设置当前选中的背景类型并持久化 */
+export function setSelectedBackgroundType(typeId: number): void {
+    _profile.selectedBackgroundType = typeId;
     saveToStorage();
 }
 

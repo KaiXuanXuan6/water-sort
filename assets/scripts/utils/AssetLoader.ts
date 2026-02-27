@@ -63,4 +63,28 @@ export class AssetLoader {
         return [normal, selected];
     }
 
+    /**
+     * 加载背景图（收集页 Background 标签用）
+     * @param bgId 背景 ID，对应 resources/Backgrounds 下的 1.png, 2.png, ...
+     */
+    public static async loadBackgroundSprite(bgId: number): Promise<SpriteFrame | null> {
+        const key = `bg_${bgId}`;
+        if (this._spriteFrameCache.has(key)) return this._spriteFrameCache.get(key)!;
+        if (this._loadingPromises.has(key)) return this._loadingPromises.get(key)! as Promise<SpriteFrame | null>;
+
+        const promise = new Promise<SpriteFrame | null>((resolve) => {
+            const path = `Backgrounds/${bgId}/spriteFrame`;
+            assetManager.resources.load(path, SpriteFrame, (err, asset) => {
+                if (err) {
+                    console.warn('[AssetLoader] 加载背景失败:', path, err);
+                    resolve(null);
+                } else {
+                    this._spriteFrameCache.set(key, asset);
+                    resolve(asset);
+                }
+            });
+        });
+        this._loadingPromises.set(key, promise);
+        return promise.finally(() => { this._loadingPromises.delete(key); });
+    }
 }

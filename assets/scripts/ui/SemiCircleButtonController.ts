@@ -25,7 +25,7 @@ export class SemiCircleButtonController extends Component {
     activeColor: Color = new Color(255, 255, 255, 255);
 
     @property(Color)
-    deactiveColor: Color = new Color(150, 150, 150, 255);
+    deactiveColor: Color = new Color(105, 115, 150, 255);
 
     private _isActive = true;
 
