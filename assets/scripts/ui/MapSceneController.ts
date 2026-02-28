@@ -24,7 +24,6 @@ const DEFAULT_TOTAL_LEVELS = 6;
 
 /**
  * 路径上的点坐标（相对于 levelListContainer），顺序为 [x1, y1, x2, y2, ...]，与关卡 1、2、3… 一一对应。
- * 若数量不少于关卡数，LevelItem 将沿路径放置；否则退化为网格排列。
  */
 const DEFAULT_PATH_POSITIONS = [
     30, -240,   // 1 右下
@@ -49,16 +48,6 @@ export class MapSceneController extends Component {
 
     @property(Prefab)
     levelItemPrefab: Prefab | null = null;
-
-    @property({ tooltip: '无预制体时关卡按钮间距；未配置路径点时也用于网格排列' })
-    levelButtonSpacing: number = 90;
-
-    /** 路径点坐标 [x1,y1, x2,y2, ...]，对应关卡 1、2、3…。留空则使用内置默认路径。 */
-    @property([Number])
-    pathPositions: number[] = [];
-
-    @property({ tooltip: '关卡总数，先做 6 关' })
-    totalLevels: number = DEFAULT_TOTAL_LEVELS;
 
     private _navManager: NavigationManager | null = null;
     private _levelButtons: LevelButtonData[] = [];
@@ -168,11 +157,8 @@ export class MapSceneController extends Component {
         });
         toRemove.forEach((c) => c.removeFromParent());
 
-        const totalLevels = Math.max(1, this.totalLevels);
-        const pathPoints = this.pathPositions.length >= totalLevels * 2
-            ? this.pathPositions
-            : DEFAULT_PATH_POSITIONS;
-        const usePathLayout = pathPoints.length >= totalLevels * 2;
+        const totalLevels = Math.max(1, DEFAULT_TOTAL_LEVELS);
+        const pathPoints = DEFAULT_PATH_POSITIONS;
 
         for (let i = 1; i <= totalLevels; i++) {
             const levelData: LevelButtonData = {
@@ -185,17 +171,10 @@ export class MapSceneController extends Component {
 
             this._levelButtons.push(levelData);
 
-            // 创建关卡按钮节点
             const levelButton = this.createLevelButton(levelData);
             if (levelButton) {
-                if (usePathLayout) {
-                    const idx = (i - 1) * 2;
-                    levelButton.setPosition(pathPoints[idx], pathPoints[idx + 1], 0);
-                } else {
-                    const col = (i - 1) % 5;
-                    const row = Math.floor((i - 1) / 5);
-                    levelButton.setPosition(col * this.levelButtonSpacing, -row * this.levelButtonSpacing, 0);
-                }
+                const idx = (i - 1) * 2;
+                levelButton.setPosition(pathPoints[idx], pathPoints[idx + 1], 0);
                 this.levelListContainer.addChild(levelButton);
             }
         }
