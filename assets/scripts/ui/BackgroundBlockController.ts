@@ -140,8 +140,12 @@ export class BackgroundBlockController extends Component {
 
     /** 未解锁时主图使用的灰度（Sprite.color 乘色） */
     private static readonly LOCKED_GRAY = new Color(128, 128, 128, 255);
+    /** 选中时整块缩放 */
+    private static readonly SELECTED_SCALE = 1.05;
 
     private applyVisuals(): void {
+        const scale = this._isSelected ? BackgroundBlockController.SELECTED_SCALE : 1;
+        this.node.setScale(scale, scale, 1);
         if (this.backgroundBgNode) this.backgroundBgNode.active = true;
         if (this.backgroundBg2Node) this.backgroundBg2Node.active = false;
         if (this.lockNode) this.lockNode.active = !this._isUnlocked;
