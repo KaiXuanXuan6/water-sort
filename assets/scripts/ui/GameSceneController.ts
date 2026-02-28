@@ -3,11 +3,12 @@ import { NavigationManager, NavigationEvent, PopupName, SceneName } from '../uti
 import { LevelData, LevelConfig } from '../data/LevelConfig';
 import { loadLevelFromResources } from '../data/LevelDataLoader';
 import { ResultPayload } from '../data/ResultPayload';
-import { getUnlockedLevel, setUnlockedLevel, setCurrentLevel, setLevelStars, addProgressBarCleared, saveToStorage, useAddTube, getAddTubeCount, useUndo, getUndoCount } from '../data/UserProfile';
+import { getUnlockedLevel, setUnlockedLevel, setCurrentLevel, setLevelStars, addProgressBarCleared, saveToStorage, useAddTube, getAddTubeCount, useUndo, getUndoCount, getSelectedBottleType } from '../data/UserProfile';
 import { WaterSortEngine } from '../logic/WaterSortEngine';
 import { BottleManager } from '../utils/BottleManager';
 import { BottleComponent, BottleStateEnum } from './BottleComponent';
 import { ResultPopupController } from './ResultPopupController';
+import { GlobalBackgroundController } from './GlobalBackgroundController';
 
 const { ccclass, property } = _decorator;
 
@@ -101,6 +102,7 @@ export class GameSceneController extends Component {
      */
     protected start(): void {
         console.log('[GameSceneController] 场景启动');
+        GlobalBackgroundController.instance?.refresh();
         this.runGame().catch((err) => console.error('[GameSceneController] runGame 失败', err));
     }
 
@@ -247,7 +249,9 @@ export class GameSceneController extends Component {
 
         const manager = this.bottleManager ?? this.node.getComponentInChildren(BottleManager);
         if (manager && this._currentLevelData.bottles.length > 0) {
-            await manager.createBottles(this._currentLevelData.bottles);
+            const selectedType = getSelectedBottleType();
+            const bottlesToRender = this._currentLevelData.bottles.map((b) => ({ ...b, bottleType: selectedType }));
+            await manager.createBottles(bottlesToRender);
             this.bindBottleClickListeners(manager);
             return;
         }

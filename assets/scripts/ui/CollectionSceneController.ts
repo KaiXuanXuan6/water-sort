@@ -13,6 +13,7 @@ import {
 import { BottleBlockController } from './BottleBlockController';
 import { BackgroundBlockController } from './BackgroundBlockController';
 import { SemiCircleButtonController } from './SemiCircleButtonController';
+import { GlobalBackgroundController } from './GlobalBackgroundController';
 
 const { ccclass, property } = _decorator;
 
@@ -307,6 +308,7 @@ export class CollectionSceneController extends Component {
             setSelectedBackgroundType(bgId);
             saveToStorage();
             this.refreshAllBackgroundBlocksSelection();
+            GlobalBackgroundController.instance?.refresh();
         }
     }
 

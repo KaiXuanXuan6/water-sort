@@ -3,6 +3,7 @@ import { NavigationManager, NavigationEvent } from '../utils/NavigationManager';
 import { LevelConfig } from '../data/LevelConfig';
 import { loadFromStorage, getCurrentLevel, getUnlockedLevel, setCurrentLevel, setUnlockedLevel, saveToStorage } from '../data/UserProfile';
 import { LevelItemController } from './LevelItemController';
+import { GlobalBackgroundController } from './GlobalBackgroundController';
 
 const { ccclass, property } = _decorator;
 
@@ -88,6 +89,8 @@ export class MapSceneController extends Component {
 
         // 监听导航事件
         this.setupNavigationListeners();
+
+        GlobalBackgroundController.instance?.refresh();
     }
 
     /**
