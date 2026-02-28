@@ -651,3 +651,50 @@ async pourFromTo(srcBottle, dstBottle, pourCount, colorId) {
   - [ ] 倒水动画改为锚点+角度驱动
 - [ ] 水流线动画（Graphics 画线，可保留现有 `_streamNode` 逻辑，改为圆头线帽）
 - [ ] 测试：静态多色层显示、倾斜液面、倾倒流程
+
+九、Cocos 3.8.x 踩坑与语法不兼容补充（极其重要）
+在将 2.x 的 Shader 移植到 3.8.x 时，由于引擎底层渲染 API 全面升级（拥抱 Vulkan/Metal/WebGPU 等），会遇到非常严格的语法与编译检查。请务必避开以下三大核心"坑点"：
+9.1 面板 properties 禁止定义大数组（错误：EFX3302）
+【现象】
+如果你按照 2.x 的习惯，在顶部的 CCEffect %{ properties: ... }% 中写了类似 colors: { value:[1,1,1,1, 0,0...共24个数字] }，控制台会立刻报错：
+Error EFX3302: illegal property declaration for 'colors': wrong array length
+【原因与解法】
+3.8.x 的 YAML 解析器会严格校验基类型长度。它认为 colors 是一个 vec4，最多只能接受 4 个数字的默认值。且目前的 Cocos 材质面板根本不支持在编辑器 UI 中配置数组。
+正确做法：直接将 colors 和 heights 这类数组从 YAML 的 properties 块中完全删除！只在 GLSL 的 UBO 中声明它们，然后在 TypeScript 脚本中通过 material.setProperty('colors', new Float32Array(...)) 进行动态赋值。
+9.2 UBO 内存对齐规则：禁止使用小于 vec4 的数组
+【现象】
+如果在着色器中声明 float heights[24];，可能会导致渲染崩溃、报错或传参彻底失效。
+【原因与解法】
+为了适配现代图形 API 严格的内存对齐要求，3.x 规定 UBO（Uniform Block）内的数组元素尺寸绝对不能小于 vec4。
+错误写法：float heights[24]; （元素是 float，太小了）
+正确做法（数据打包）：必须压缩成 vec4 heights[6];，并在片元着色器中通过 heights[i / 4][i % 4] 来解析读取，或者像本文前面的逻辑一样，规定每个 vec4 的 .x 分量代表高度。
+9.3 死代码消除导致属性丢失（警告：illegal property name）
+【现象】
+在 TS 中调用 material.setProperty('tiltAngle', angle) 时，控制台疯狂输出：
+installHook.js:1 illegal property name: tiltAngle.
+installHook.js:1 illegal property name: resolution.
+【原因与解法】
+GLSL 编译器非常激进，被称为死代码消除（Dead Code Elimination）。如果你在 Shader 的 UBO 中声明了 tiltAngle，但在 main() / frag() 函数的核心计算中没有真正用到它（比如开发初期仅仅只是声明了还没写逻辑），编译器就会直接把这个变量删掉。此时引擎去给它赋值就会报“找不到该属性”。
+正确做法：确保声明的变量在最终颜色计算中被使用。如果处于开发调试阶段，可以写一段"废代码"骗过编译器：
+code
+Glsl
+// 骗过编译器的防优化占位符代码
+float dummy = resolution.x + tiltAngle + float(waveType) + colors[0].r + heights[0].x;
+texColor.r += dummy * 0.000001; // 极小值不影响视觉，但保住了变量不被删
+9.4 全局 Uniform 必须包裹在 UBO 中
+【现象】
+2.x 中随处可见的全局浮空 uniform float tiltAngle; 在 3.x 中会报错或失效。
+【原因与解法】
+3.x 强制要求所有的自定义 Uniform 变量必须被放在一个显式命名的常量块（Uniform Buffer Object）中。
+正确规范：
+code
+Glsl
+// 必须包裹在 UBO 中，且注意 vec4 放前面，float 放后面的对齐习惯
+uniform LiquidParams {
+  vec4 colors[MAX_LAYERS];
+  vec4 heights[MAX_LAYERS];
+  vec2 resolution;
+  float tiltAngle;
+  float waveType;
+};
+(注：请同步检查本文【4.2】节的 Effect 模板，在实际应用时，记得将 properties 块中的 colors 和 heights 删去，以免触发 EFX3302 报错。)
