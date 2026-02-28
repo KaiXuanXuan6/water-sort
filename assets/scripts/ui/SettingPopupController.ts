@@ -1,5 +1,6 @@
 import { _decorator, Component, Node, Button, Toggle, tween, Vec3 } from 'cc';
 import { NavigationManager, NavigationEvent, PopupName } from '../utils/NavigationManager';
+import { SoundManager } from '../utils/SoundManager';
 import { loadFromStorage, getSoundEnabled, setSoundEnabled, getVibrationEnabled, setVibrationEnabled } from '../data/UserProfile';
 
 const { ccclass, property } = _decorator;
@@ -171,6 +172,7 @@ export class SettingPopupController extends Component {
      * 关闭按钮点击
      */
     private onCloseClick(): void {
+        SoundManager.instance?.playOneShot('button');
         this.hide();
     }
 

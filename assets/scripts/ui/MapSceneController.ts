@@ -1,5 +1,6 @@
 import { _decorator, Component, Node, Button, ScrollView, Label, UITransform, Prefab, instantiate } from 'cc';
 import { NavigationManager, NavigationEvent } from '../utils/NavigationManager';
+import { SoundManager } from '../utils/SoundManager';
 import { LevelConfig } from '../data/LevelConfig';
 import { loadFromStorage, getCurrentLevel, getUnlockedLevel, setCurrentLevel, setUnlockedLevel, saveToStorage } from '../data/UserProfile';
 import { LevelItemController } from './LevelItemController';
@@ -247,6 +248,7 @@ export class MapSceneController extends Component {
      * 关卡按钮点击
      */
     private onLevelClick(levelData: LevelButtonData): void {
+        SoundManager.instance?.playOneShot('button');
         console.log(`[MapSceneController] 点击关卡: ${levelData.levelNum}`);
 
         if (!levelData.isUnlocked) {

@@ -1,5 +1,6 @@
 import { _decorator, Component, Node, Sprite, Button, UITransform, Color } from 'cc';
 import { AssetLoader } from '../utils/AssetLoader';
+import { SoundManager } from '../utils/SoundManager';
 import { BouncePopAnim } from '../animation/BouncePopAnim';
 
 const { ccclass, property } = _decorator;
@@ -129,11 +130,13 @@ export class BackgroundBlockController extends Component {
     }
 
     private onBlockClick(): void {
+        SoundManager.instance?.playOneShot('button');
         if (!this._isUnlocked) this.playLockBounceAnim();
         if (this._onSelect) this._onSelect(this._bgId);
     }
 
     private onLockNodeClick(): void {
+        SoundManager.instance?.playOneShot('button');
         this.playLockBounceAnim();
         if (this._onLockClick) this._onLockClick(this._bgId);
     }

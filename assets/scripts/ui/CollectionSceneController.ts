@@ -1,5 +1,6 @@
 import { _decorator, Component, Node, ScrollView, Prefab, instantiate, tween, Vec3, Button, UITransform } from 'cc';
 import { NavigationManager, NavigationEvent } from '../utils/NavigationManager';
+import { SoundManager } from '../utils/SoundManager';
 import {
     isBottleTypeUnlocked,
     getSelectedBottleType,
@@ -121,10 +122,12 @@ export class CollectionSceneController extends Component {
     }
 
     private switchToBottle(): void {
+        SoundManager.instance?.playOneShot('select');
         this.setTabActive(0);
     }
 
     private switchToBackground(): void {
+        SoundManager.instance?.playOneShot('select');
         this.setTabActive(1);
     }
 

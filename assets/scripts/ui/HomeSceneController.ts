@@ -1,5 +1,6 @@
 import { _decorator, Component, Button, Label } from 'cc';
 import { NavigationManager, NavigationEvent, SceneName } from '../utils/NavigationManager';
+import { SoundManager } from '../utils/SoundManager';
 import { loadFromStorage, getCurrentLevel, getUnlockedLevel } from '../data/UserProfile';
 import { LevelConfig } from '../data/LevelConfig';
 
@@ -93,6 +94,7 @@ export class HomeSceneController extends Component {
      * 开始游戏按钮点击：进入游戏页（当前应玩关卡）
      */
     private onStartClick(): void {
+        SoundManager.instance?.playOneShot('button');
         console.log('[HomeSceneController] 点击开始按钮');
         const levelNum = Math.min(getCurrentLevel(), getUnlockedLevel());
         const levelId = LevelConfig.levelNumToLevelId(levelNum);
@@ -103,6 +105,7 @@ export class HomeSceneController extends Component {
      * 商店按钮点击（暂留占位）
      */
     private onShopClick(): void {
+        SoundManager.instance?.playOneShot('button');
         console.log('[HomeSceneController] 点击商店按钮（功能待实现）');
         // TODO: 实现商店功能
     }

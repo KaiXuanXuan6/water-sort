@@ -1,11 +1,12 @@
 import { _decorator, Component, Node, Button, Label, Sprite, SpriteFrame, UIOpacity, assetManager, Vec3, tween, Tween } from 'cc';
 import { NavigationManager, NavigationEvent, PopupName, SceneName } from '../utils/NavigationManager';
-import { LevelData, LevelConfig } from '../data/LevelConfig';
+import { LevelData, LevelConfig, BottleState } from '../data/LevelConfig';
 import { loadLevelFromResources } from '../data/LevelDataLoader';
 import { ResultPayload } from '../data/ResultPayload';
 import { getUnlockedLevel, setUnlockedLevel, setCurrentLevel, setLevelStars, addProgressBarCleared, saveToStorage, useAddTube, getAddTubeCount, useUndo, getUndoCount, getSelectedBottleType } from '../data/UserProfile';
 import { WaterSortEngine } from '../logic/WaterSortEngine';
 import { BottleManager } from '../utils/BottleManager';
+import { SoundManager } from '../utils/SoundManager';
 import { BottleComponent, BottleStateEnum } from './BottleComponent';
 import { ResultPopupController } from './ResultPopupController';
 import { GlobalBackgroundController } from './GlobalBackgroundController';
@@ -317,6 +318,7 @@ export class GameSceneController extends Component {
             this._selectedBottleIndex = bottleIndex;
             this._playState = PlayState.SELECTED;
             manager?.getBottleComponent(bottleIndex)?.setState(BottleStateEnum.SELECTED);
+            SoundManager.instance?.playOneShot('select');
             console.log(`[GameSceneController] 选中瓶子: ${bottleIndex}`);
         } else if (this._selectedBottleIndex === bottleIndex) {
             this._selectedBottleIndex = -1;
@@ -385,6 +387,10 @@ export class GameSceneController extends Component {
                 this.syncBottlesFromEngine();
                 toComp.setIncomingPour(0, 0, 0);
                 this.showCorrectHintAboveBottle(toIndex);
+                const toBottle = this._engine.levelData?.bottles[toIndex];
+                if (toBottle && this.isBottleComplete(toBottle)) {
+                    SoundManager.instance?.playOneShot('finish');
+                }
                 this.checkWin();
                 if (this._playState !== PlayState.FINISHED) {
                     this.checkDefeat();
@@ -494,6 +500,14 @@ export class GameSceneController extends Component {
         }
     }
 
+    /** 目标瓶刚好被装满且同色时播 finish */
+    private isBottleComplete(bottle: BottleState): boolean {
+        if (bottle.waters.length !== bottle.capacity) return false;
+        if (bottle.waters.length === 0) return false;
+        const first = bottle.waters[0].colorId;
+        return bottle.waters.every((w) => w.colorId === first);
+    }
+
     /**
      * 检查游戏胜利
      */
@@ -532,6 +546,7 @@ export class GameSceneController extends Component {
     private onGameWin(): void {
         console.log('[GameSceneController] 游戏胜利！');
         this._playState = PlayState.FINISHED;
+        SoundManager.instance?.playOneShot('win');
 
         // TODO: 保存关卡进度
         this.saveLevelProgress();
@@ -652,6 +667,7 @@ export class GameSceneController extends Component {
      * 撤销按钮点击
      */
     private onUndoClick(): void {
+        SoundManager.instance?.playOneShot('button');
         // 先尝试撤销，如果成功再消耗道具
         if (this._engine.undoMove()) {
             // 消耗撤销道具
@@ -668,6 +684,7 @@ export class GameSceneController extends Component {
      * 重玩按钮点击
      */
     private onReplayClick(): void {
+        SoundManager.instance?.playOneShot('refresh');
         this.initGame();
     }
 
@@ -686,6 +703,7 @@ export class GameSceneController extends Component {
         const newBottleIndex = this._engine.addTube();
 
         if (newBottleIndex >= 0) {
+            SoundManager.instance?.playOneShot('select');
             // 重新创建瓶子UI
             const manager = this.bottleManager ?? this.node.getComponentInChildren(BottleManager);
             if (manager) {

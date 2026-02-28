@@ -1,5 +1,6 @@
 import { _decorator, Component, Node, Button, Label, Sprite, UITransform, Vec3, Tween, Widget } from 'cc';
 import { NavigationManager, NavigationEvent, PopupName } from '../utils/NavigationManager';
+import { SoundManager } from '../utils/SoundManager';
 import { LevelConfig } from '../data/LevelConfig';
 import { ResultPayload } from '../data/ResultPayload';
 import { getProgressBarCleared, getProgressBarTarget } from '../data/UserProfile';
@@ -276,6 +277,11 @@ protected onLoad(): void {
     private onResultActionClick(): void {
         if (!this._resultData || this._isAnimating) return;
 
+        if (this._resultData.success) {
+            SoundManager.instance?.playOneShot('button');
+        } else {
+            SoundManager.instance?.playOneShot('refresh');
+        }
         this.hide();
         this._navManager?.closePopup();
 

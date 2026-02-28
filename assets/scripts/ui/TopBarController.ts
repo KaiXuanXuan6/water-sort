@@ -1,5 +1,6 @@
 import { _decorator, Component, Button, Label } from 'cc';
 import { NavigationManager, NavigationEvent, SceneName } from '../utils/NavigationManager';
+import { SoundManager } from '../utils/SoundManager';
 import { LevelConfig } from '../data/LevelConfig';
 
 const { ccclass, property } = _decorator;
@@ -87,10 +88,12 @@ export class TopBarController extends Component {
     }
 
     private onBackClick(): void {
+        SoundManager.instance?.playOneShot('button');
         this._nav?.back();
     }
 
     private onSettingClick(): void {
+        SoundManager.instance?.playOneShot('button');
         this._nav?.showSettingsPopup();
     }
 }

@@ -1,5 +1,6 @@
 import { _decorator, Button, Component, Node, tween, Vec3 } from 'cc';
 import { NavigationManager, NavigationEvent, SceneName } from '../utils/NavigationManager';
+import { SoundManager } from '../utils/SoundManager';
 
 const { ccclass, property } = _decorator;
 
@@ -145,6 +146,7 @@ export class BottomBarController extends Component {
         if (this.homeButton) {
             const btn = this.homeButton.getComponent(Button) ?? this.homeButton.addComponent(Button);
             btn.node.on(Button.EventType.CLICK, () => {
+                SoundManager.instance?.playOneShot('button');
                 NavigationManager.instance?.gotoHome();
             });
         }
@@ -152,6 +154,7 @@ export class BottomBarController extends Component {
         if (this.mapButton) {
             const btn = this.mapButton.getComponent(Button) ?? this.mapButton.addComponent(Button);
             btn.node.on(Button.EventType.CLICK, () => {
+                SoundManager.instance?.playOneShot('button');
                 NavigationManager.instance?.gotoMap();
             });
         }
@@ -159,6 +162,7 @@ export class BottomBarController extends Component {
         if (this.collectionButton) {
             const btn = this.collectionButton.getComponent(Button) ?? this.collectionButton.addComponent(Button);
             btn.node.on(Button.EventType.CLICK, () => {
+                SoundManager.instance?.playOneShot('button');
                 NavigationManager.instance?.gotoCollection();
             });
         }
