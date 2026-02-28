@@ -1,13 +1,13 @@
 import { _decorator, Component, Button, Label } from 'cc';
 import { NavigationManager, NavigationEvent, SceneName } from '../utils/NavigationManager';
-import { loadFromStorage, getUnlockedLevel } from '../data/UserProfile';
+import { loadFromStorage, getCurrentLevel, getUnlockedLevel } from '../data/UserProfile';
 import { LevelConfig } from '../data/LevelConfig';
 
 const { ccclass, property } = _decorator;
 
 /**
  * 首页控制器
- * 负责首页场景的初始化和交互逻辑；开始按钮上的「Level N」由本组件根据 UserProfile.unlockedLevel 更新。
+ * 负责首页场景的初始化和交互逻辑；开始按钮上的「Level N」由本组件根据 UserProfile.currentLevel 更新。
  */
 @ccclass('HomeSceneController')
 export class HomeSceneController extends Component {
@@ -94,7 +94,8 @@ export class HomeSceneController extends Component {
      */
     private onStartClick(): void {
         console.log('[HomeSceneController] 点击开始按钮');
-        const levelId = LevelConfig.levelNumToLevelId(getUnlockedLevel());
+        const levelNum = Math.min(getCurrentLevel(), getUnlockedLevel());
+        const levelId = LevelConfig.levelNumToLevelId(levelNum);
         this._navManager?.gotoGame(levelId);
     }
 
@@ -124,10 +125,10 @@ export class HomeSceneController extends Component {
         }
     };
 
-    /** 根据 UserProfile.unlockedLevel 更新开始按钮上的「Level N」文案 */
+    /** 根据 UserProfile.currentLevel 更新开始按钮上的「Level N」文案 */
     private refreshStartButtonLevelLabel(): void {
         if (this.startButtonLevelLabel) {
-            this.startButtonLevelLabel.string = 'Level ' + getUnlockedLevel();
+            this.startButtonLevelLabel.string = 'Level ' + getCurrentLevel();
         }
     }
 }

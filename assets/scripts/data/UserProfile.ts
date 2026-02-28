@@ -72,6 +72,15 @@ export function setVibrationEnabled(enabled: boolean): void {
     saveToStorage();
 }
 
+export function getCurrentLevel(): number {
+    return _profile.currentLevel;
+}
+
+export function setCurrentLevel(level: number): void {
+    _profile.currentLevel = sanitizeNumber(level, 1, 1);
+    saveToStorage();
+}
+
 export function getUnlockedLevel(): number {
     return _profile.unlockedLevel;
 }

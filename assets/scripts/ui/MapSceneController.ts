@@ -1,7 +1,7 @@
 import { _decorator, Component, Node, Button, ScrollView, Label, UITransform, Prefab, instantiate } from 'cc';
 import { NavigationManager, NavigationEvent } from '../utils/NavigationManager';
 import { LevelConfig } from '../data/LevelConfig';
-import { loadFromStorage, getUnlockedLevel, setUnlockedLevel, saveToStorage } from '../data/UserProfile';
+import { loadFromStorage, getCurrentLevel, getUnlockedLevel, setCurrentLevel, setUnlockedLevel, saveToStorage } from '../data/UserProfile';
 import { LevelItemController } from './LevelItemController';
 
 const { ccclass, property } = _decorator;
@@ -100,7 +100,8 @@ export class MapSceneController extends Component {
             this._unlockedLevel = 1;
             saveToStorage();
         }
-        console.log(`[MapSceneController] 已解锁关卡: ${this._unlockedLevel}`);
+        this._currentLevel = getCurrentLevel();
+        console.log(`[MapSceneController] 已解锁关卡: ${this._unlockedLevel}, 当前关卡: ${this._currentLevel}`);
     }
 
     /**
@@ -155,7 +156,7 @@ export class MapSceneController extends Component {
             }
             ctrl.setData(
                 { levelNum: data.levelNum, isUnlocked: data.isUnlocked },
-                this._unlockedLevel
+                this._currentLevel
             );
             const btn = btnNode.getComponent(Button);
             if (btn) {
@@ -194,6 +195,8 @@ export class MapSceneController extends Component {
             return;
         }
 
+        setCurrentLevel(levelData.levelNum);
+        this._currentLevel = levelData.levelNum;
         this._navManager?.gotoGame(levelData.levelId);
     }
 
