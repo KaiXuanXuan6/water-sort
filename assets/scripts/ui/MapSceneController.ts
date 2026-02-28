@@ -17,9 +17,24 @@ interface LevelButtonData {
     stars: number;
 }
 
+/** 当前配置的关卡总数（仅做 6 关时可改这里或用属性配置） */
+const DEFAULT_TOTAL_LEVELS = 6;
+
+/**
+ * 路径上的点坐标（相对于 levelListContainer），顺序为 [x1, y1, x2, y2, ...]，与关卡 1、2、3… 一一对应。
+ * 若数量不少于关卡数，LevelItem 将沿路径放置；否则退化为网格排列。
+ */
+const DEFAULT_PATH_POSITIONS = [
+    30, -240,   // 1 右下
+    -150, -140,   // 2
+    150, 0,   // 3
+    0, 80,   // 4
+    -145, 160,   // 5
+    140, 260      // 6
+];
+
 /**
  * 地图页控制器
- * 负责关卡列表、进度显示和关卡选择
  */
 @ccclass('MapSceneController')
 export class MapSceneController extends Component {
@@ -27,14 +42,21 @@ export class MapSceneController extends Component {
     @property(ScrollView)
     levelScrollView: ScrollView | null = null;
 
-    @property(Node)
+    @property({ tooltip: '关卡节点父节点，绑定到 MapPath 节点即可沿路径排列' })
     levelListContainer: Node | null = null;
 
     @property(Prefab)
     levelItemPrefab: Prefab | null = null;
 
-    @property({ tooltip: '无预制体时关卡按钮间距' })
+    @property({ tooltip: '无预制体时关卡按钮间距；未配置路径点时也用于网格排列' })
     levelButtonSpacing: number = 90;
+
+    /** 路径点坐标 [x1,y1, x2,y2, ...]，对应关卡 1、2、3…。留空则使用内置默认路径。 */
+    @property([Number])
+    pathPositions: number[] = [];
+
+    @property({ tooltip: '关卡总数，先做 6 关' })
+    totalLevels: number = DEFAULT_TOTAL_LEVELS;
 
     private _navManager: NavigationManager | null = null;
     private _levelButtons: LevelButtonData[] = [];
@@ -57,6 +79,10 @@ export class MapSceneController extends Component {
         // 加载用户数据
         this.loadUserData();
 
+        if (!this.levelListContainer && this.levelScrollView?.content) {
+            this.levelListContainer = this.levelScrollView.content;
+        }
+
         // 生成关卡列表
         this.generateLevelList();
 
@@ -69,6 +95,24 @@ export class MapSceneController extends Component {
      */
     protected start(): void {
         console.log('[MapSceneController] 场景启动');
+    }
+
+    /**
+     * 每次地图页被显示时（含从游戏页返回）重新拉取进度并刷新关卡按钮的「当前」态
+     */
+    protected onEnable(): void {
+        if (!this.levelListContainer) return;
+        this.loadUserData();
+        this.levelListContainer.children.forEach((node) => {
+            if (!node.name.startsWith('Level_')) return;
+            const ctrl = node.getComponent(LevelItemController);
+            if (!ctrl) return;
+            const levelNum = parseInt(node.name.replace('Level_', ''), 10) || 1;
+            ctrl.setData(
+                { levelNum, isUnlocked: levelNum <= this._unlockedLevel },
+                this._currentLevel
+            );
+        });
     }
 
     /**
@@ -113,11 +157,18 @@ export class MapSceneController extends Component {
             return;
         }
 
-        // 清空现有列表
-        this.levelListContainer.removeAllChildren();
+        // 只移除之前生成的关卡节点（保留 LevelContainer 等），避免 removeAllChildren 误删
+        const toRemove: Node[] = [];
+        this.levelListContainer.children.forEach((c) => {
+            if (c.name.startsWith('Level_')) toRemove.push(c);
+        });
+        toRemove.forEach((c) => c.removeFromParent());
 
-        // 生成关卡按钮（先做 1～10 关，与 level_001 等对齐）
-        const totalLevels = 10;
+        const totalLevels = Math.max(1, this.totalLevels);
+        const pathPoints = this.pathPositions.length >= totalLevels * 2
+            ? this.pathPositions
+            : DEFAULT_PATH_POSITIONS;
+        const usePathLayout = pathPoints.length >= totalLevels * 2;
 
         for (let i = 1; i <= totalLevels; i++) {
             const levelData: LevelButtonData = {
@@ -133,9 +184,14 @@ export class MapSceneController extends Component {
             // 创建关卡按钮节点
             const levelButton = this.createLevelButton(levelData);
             if (levelButton) {
-                const col = (i - 1) % 5;
-                const row = Math.floor((i - 1) / 5);
-                levelButton.setPosition(col * this.levelButtonSpacing, -row * this.levelButtonSpacing, 0);
+                if (usePathLayout) {
+                    const idx = (i - 1) * 2;
+                    levelButton.setPosition(pathPoints[idx], pathPoints[idx + 1], 0);
+                } else {
+                    const col = (i - 1) % 5;
+                    const row = Math.floor((i - 1) / 5);
+                    levelButton.setPosition(col * this.levelButtonSpacing, -row * this.levelButtonSpacing, 0);
+                }
                 this.levelListContainer.addChild(levelButton);
             }
         }

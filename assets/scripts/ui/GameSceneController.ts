@@ -3,7 +3,7 @@ import { NavigationManager, NavigationEvent, PopupName, SceneName } from '../uti
 import { LevelData, LevelConfig } from '../data/LevelConfig';
 import { loadLevelFromResources } from '../data/LevelDataLoader';
 import { ResultPayload } from '../data/ResultPayload';
-import { setUnlockedLevel, setLevelStars, addProgressBarCleared, saveToStorage, useAddTube, getAddTubeCount, useUndo, getUndoCount } from '../data/UserProfile';
+import { getUnlockedLevel, setUnlockedLevel, setCurrentLevel, setLevelStars, addProgressBarCleared, saveToStorage, useAddTube, getAddTubeCount, useUndo, getUndoCount } from '../data/UserProfile';
 import { WaterSortEngine } from '../logic/WaterSortEngine';
 import { BottleManager } from '../utils/BottleManager';
 import { BottleComponent, BottleStateEnum } from './BottleComponent';
@@ -623,13 +623,18 @@ export class GameSceneController extends Component {
         const levelId = this._currentLevelId;
         const currentLevel = LevelConfig.levelIdToLevelNum(levelId);
         const nextLevel = currentLevel + 1;
+        const wasAlreadyPassed = currentLevel < getUnlockedLevel();
+
+        console.log('[GameSceneController] 当前关卡:', currentLevel, '下一关:', nextLevel, '已通关:', wasAlreadyPassed);
 
         setUnlockedLevel(nextLevel);
 
         const stars = this.calculateStars(this._moveCount);
         setLevelStars(levelId, stars);
 
-        addProgressBarCleared();
+        if (!wasAlreadyPassed) {
+            addProgressBarCleared();
+        }
 
         saveToStorage();
         console.log(`[GameSceneController] 保存关卡进度: ${levelId}, 下一关解锁至 ${nextLevel}, 星数 ${stars}`);
@@ -696,6 +701,7 @@ export class GameSceneController extends Component {
         }
         this._currentLevelId = this._navManager?.selectedLevelId || '';
         if (this._currentLevelId) {
+            setCurrentLevel(LevelConfig.levelIdToLevelNum(this._currentLevelId));
             this.runGame().catch((err) => console.error('[GameSceneController] runGame 失败', err));
         }
     };
