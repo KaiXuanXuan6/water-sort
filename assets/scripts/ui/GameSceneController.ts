@@ -3,7 +3,7 @@ import { NavigationManager, NavigationEvent, PopupName, SceneName } from '../uti
 import { LevelData, LevelConfig, BottleState } from '../data/LevelConfig';
 import { loadLevelFromResources } from '../data/LevelDataLoader';
 import { ResultPayload } from '../data/ResultPayload';
-import { getUnlockedLevel, setUnlockedLevel, setCurrentLevel, setLevelStars, addProgressBarCleared, saveToStorage, useAddTube, getAddTubeCount, useUndo, getUndoCount, getSelectedBottleType } from '../data/UserProfile';
+import { getUnlockedLevel, setUnlockedLevel, setCurrentLevel, setLevelStars, addProgressBarCleared, saveToStorage, useAddTube, getAddTubeCount, useUndo, getUndoCount, getSelectedBottleType, getProgressBarCleared, getProgressBarTarget } from '../data/UserProfile';
 import { WaterSortEngine } from '../logic/WaterSortEngine';
 import { BottleManager } from '../utils/BottleManager';
 import { SoundManager } from '../utils/SoundManager';
@@ -548,15 +548,19 @@ export class GameSceneController extends Component {
         this._playState = PlayState.FINISHED;
         SoundManager.instance?.playOneShot('win');
 
-        // TODO: 保存关卡进度
+        const stars = this.calculateStars(this._moveCount);
+        const currentLevel = LevelConfig.levelIdToLevelNum(this._currentLevelId);
+        const wasAlreadyPassed = currentLevel < getUnlockedLevel();
+        const progressBarJustFilled = !wasAlreadyPassed && getProgressBarCleared() + 1 >= getProgressBarTarget();
+
         this.saveLevelProgress();
 
-        const stars = this.calculateStars(this._moveCount);
         const payload: ResultPayload = {
             success: true,
             levelId: this._currentLevelId,
             moveCount: this._moveCount,
-            stars
+            stars,
+            progressBarJustFilled
         };
         this.playWinBanner(() => {
             this._navManager?.showResultPopup(payload);

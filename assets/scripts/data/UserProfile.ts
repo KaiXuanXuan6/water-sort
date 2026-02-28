@@ -16,6 +16,8 @@ export interface UserProfileData {
     unlockedLevel: number;
     /** 各关卡星数 1～3，key 为 levelId */
     levelStars: Record<string, number>;
+    /** 金币数量 */
+    coinCount: number;
     /** 撤销道具剩余次数，-1 表示无限 */
     undoCount: number;
     /** 加管道具剩余次数 */
@@ -42,10 +44,11 @@ const DEFAULT_PROFILE: UserProfileData = {
     currentLevel: 1,
     unlockedLevel: 1,
     levelStars: {},
+    coinCount: 0,
     undoCount: 3,
     addTubeCount: 1,
     progressBarCleared: 0,
-    progressBarTarget: 8,
+    progressBarTarget: 6,
     unlockedBottleTypes: [1, 2],
     selectedBottleType: 1,
     unlockedBackgroundTypes: [1, 2],
@@ -101,11 +104,16 @@ export function getProgressBarTarget(): number {
     return _profile.progressBarTarget;
 }
 
-/** 胜利时调用：本段进度 +1，攒满则清零开始下一段 */
+/** 胜利时调用：本段进度 +1 */
 export function addProgressBarCleared(): void {
     _profile.progressBarCleared++;
+}
+
+/** 领取奖励后调用：本段进度清零并持久化（结算页进度条展示不刷新，仅数据清 0） */
+export function resetProgressBarSegment(): void {
     if (_profile.progressBarCleared >= _profile.progressBarTarget) {
         _profile.progressBarCleared = 0;
+        saveToStorage();
     }
 }
 
@@ -122,6 +130,7 @@ export function loadFromStorage(): UserProfileData {
                 currentLevel: sanitizeNumber(parsed.currentLevel, 1, 1),
                 unlockedLevel: sanitizeNumber(parsed.unlockedLevel, 1, 1),
                 levelStars: (parsed.levelStars && typeof parsed.levelStars === 'object') ? parsed.levelStars : {},
+                coinCount: sanitizeNumber(parsed.coinCount, 0, 0),
                 undoCount: typeof parsed.undoCount === 'number' ? parsed.undoCount : -1,
                 addTubeCount: sanitizeNumber(parsed.addTubeCount, 0, 0),
                 progressBarCleared: sanitizeNumber(parsed.progressBarCleared, 0, 0),
@@ -145,6 +154,15 @@ export function saveToStorage(): void {
     } catch (e) {
         console.warn('[UserProfile] saveToStorage 写入失败', e);
     }
+}
+
+export function getCoinCount(): number {
+    return _profile.coinCount;
+}
+
+export function addCoinCount(amount: number): void {
+    _profile.coinCount = Math.max(0, _profile.coinCount + amount);
+    saveToStorage();
 }
 
 /** 使用撤销道具，返回是否成功 */

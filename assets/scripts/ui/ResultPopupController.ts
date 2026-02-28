@@ -42,6 +42,10 @@ export class ResultPopupController extends Component {
     @property(Label)
     progressLabel: Label | null = null;
 
+    /** 进度条满时展示的奖励弹窗节点（RewardPopup），不填则不自动弹出 */
+    @property(Node)
+    rewardPopupNode: Node | null = null;
+
     private _navManager: NavigationManager | null = null;
     private _resultData: ResultPayload | null = null;
     private _isShowed: boolean = false;
@@ -102,6 +106,9 @@ protected onLoad(): void {
             this._previousProgressCleared = Math.max(0, this._previousProgressCleared - 1);
         }
 
+        if (this.rewardPopupNode?.isValid) {
+            this.rewardPopupNode.active = false;
+        }
         this.updateResultContent();
     }
 
@@ -175,9 +182,17 @@ protected onLoad(): void {
 
                     const progressAnim = fillNode.getComponent(ProgressBarAnim);
                     if (progressAnim) {
-                        progressAnim.play(finalWidth, fullH, () => { this._isAnimating = false; });
+                        progressAnim.play(finalWidth, fullH, () => {
+                            this._isAnimating = false;
+                            if (this._resultData?.progressBarJustFilled && this.rewardPopupNode?.isValid) {
+                                this.rewardPopupNode.active = true;
+                            }
+                        });
                     } else {
                         this._isAnimating = false;
+                        if (this._resultData?.progressBarJustFilled && this.rewardPopupNode?.isValid) {
+                            this.rewardPopupNode.active = true;
+                        }
                     }
                     return 0;
                 } else {

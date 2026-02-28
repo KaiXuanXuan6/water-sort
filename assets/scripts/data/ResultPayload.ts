@@ -13,4 +13,6 @@ export interface ResultPayload {
     minMoves?: number;
     /** 获得星数（可选） */
     stars?: number;
+    /** 本局胜利是否导致进度条刚好攒满（用于展示 Reward 弹窗） */
+    progressBarJustFilled?: boolean;
 }
