@@ -319,13 +319,40 @@ export class BottleComponent extends Component {
     // ========== 渲染方法 ==========
 
     /**
+     * 确保拿到液体材质实例后再执行回调。
+     * 因引擎对 MaterialInstance 懒创建，若本次取不到会延帧重试，上限 MAX_RETRY 次。
+     */
+    private ensureWaterMaterial(callback: (mat: Material | null) => void, retryCount: number = 0): void {
+        const MAX_RETRY = 5;
+        if (this._waterMaterial) {
+            callback(this._waterMaterial);
+            return;
+        }
+        if (!this.waterSprite?.customMaterial) {
+            callback(null);
+            return;
+        }
+        const wasActive = this.waterSprite.node.active;
+        this.waterSprite.node.active = true;
+        const mat = this.waterSprite.getMaterialInstance(0) || null;
+        if (mat) {
+            this._waterMaterial = mat;
+            callback(mat);
+            return;
+        }
+        if (!wasActive) this.waterSprite.node.active = false;
+        if (retryCount >= MAX_RETRY) {
+            callback(null);
+            return;
+        }
+        this.scheduleOnce(() => this.ensureWaterMaterial(callback, retryCount + 1), 0);
+    }
+
+    /**
      * 渲染水层（同步到 water-sort-liquid Shader，需已绑定 waterSprite）
      */
     public renderWaterLayers(): void {
-        if (!this._bottleData || !this.waterContainer) {
-            return;
-        }
-
+        if (!this._bottleData || !this.waterContainer) return;
         const waters = this._bottleData.waters;
         const capacity = this._bottleData.capacity;
         const transform = this.waterContainer.getComponent(UITransformType);
@@ -334,20 +361,16 @@ export class BottleComponent extends Component {
         const cw = BottleComponent.BOTTLE_INNER_WIDTH;
         const ch = BottleComponent.BOTTLE_INNER_HEIGHT;
         transform.setContentSize(cw, ch);
-
         if (!this.waterSprite) return;
 
-        if (!this._waterMaterial && this.waterSprite.customMaterial) {
-            this._waterMaterial = this.waterSprite.getMaterialInstance(0) || null;
-        }
-        if (this._waterMaterial) {
+        this.ensureWaterMaterial((mat) => {
+            if (!mat) return;
             this.syncWaterToShader(waters, capacity);
-            this.waterSprite.node.active = waters.length > 0;
             this._lastWaveType = 0;
-            this._waterMaterial.setProperty('tiltWave', new Vec4(this.node.angle, 0, 0, 0));
-        }
-
-        console.log(`[BottleComponent] 渲染水层: ${waters.length} 层`);
+            mat.setProperty('tiltWave', new Vec4(this.node.angle, 0, 0, 0));
+            this.waterSprite!.node.active = waters.length > 0;
+            console.log(`[BottleComponent] 渲染水层: ${waters.length} 层`);
+        });
     }
 
     /**

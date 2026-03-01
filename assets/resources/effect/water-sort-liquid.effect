@@ -12,6 +12,8 @@ CCEffect %{
         - blend: true
           blendSrc: src_alpha
           blendDst: one_minus_src_alpha
+          blendSrcAlpha: src_alpha
+          blendDstAlpha: one_minus_src_alpha
       rasterizerState:
         cullMode: none
       properties:
