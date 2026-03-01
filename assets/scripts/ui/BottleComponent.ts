@@ -95,7 +95,7 @@ export class BottleComponent extends Component {
     /** Phase 3 临时液块节点（整体倾倒用） */
     private _pourBlockNode: Node | null = null;
 
-    /** 液体材质实例（来自 waterSprite），用于同步 tiltAngle / colors / heights / waveType */
+    /** 液体材质实例 */
     private _waterMaterial: Material | null = null;
     /** 上一帧瓶子角度，用于减少 setProperty 调用 */
     private _lastAngle: number = 0;
