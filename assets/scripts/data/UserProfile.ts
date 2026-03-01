@@ -6,9 +6,11 @@ import { sys } from 'cc';
  */
 
 export interface UserProfileData {
-    /** 音效开关（Voice） */
+    /** 音效开关（短音效 SFX） */
     soundEnabled: boolean;
-    /** 震动开关（Music） */
+    /** 背景音乐开关 */
+    musicEnabled: boolean;
+    /** 震动开关 */
     vibrationEnabled: boolean;
     /** 当前玩到的最大关卡序号（1-based） */
     currentLevel: number;
@@ -40,6 +42,7 @@ const STORAGE_KEY = 'water_sort_user_profile';
 
 const DEFAULT_PROFILE: UserProfileData = {
     soundEnabled: true,
+    musicEnabled: true,
     vibrationEnabled: true,
     currentLevel: 1,
     unlockedLevel: 1,
@@ -63,6 +66,15 @@ export function getSoundEnabled(): boolean {
 
 export function setSoundEnabled(enabled: boolean): void {
     _profile.soundEnabled = enabled;
+    saveToStorage();
+}
+
+export function getMusicEnabled(): boolean {
+    return _profile.musicEnabled;
+}
+
+export function setMusicEnabled(enabled: boolean): void {
+    _profile.musicEnabled = enabled;
     saveToStorage();
 }
 
@@ -126,6 +138,7 @@ export function loadFromStorage(): UserProfileData {
         if (parsed && typeof parsed === 'object') {
             _profile = {
                 soundEnabled: typeof parsed.soundEnabled === 'boolean' ? parsed.soundEnabled : true,
+                musicEnabled: typeof parsed.musicEnabled === 'boolean' ? parsed.musicEnabled : true,
                 vibrationEnabled: typeof parsed.vibrationEnabled === 'boolean' ? parsed.vibrationEnabled : true,
                 currentLevel: sanitizeNumber(parsed.currentLevel, 1, 1),
                 unlockedLevel: sanitizeNumber(parsed.unlockedLevel, 1, 1),

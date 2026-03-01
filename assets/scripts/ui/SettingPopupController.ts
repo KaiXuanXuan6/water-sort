@@ -1,7 +1,7 @@
 import { _decorator, Component, Node, Button, Toggle, tween, Vec3 } from 'cc';
 import { NavigationManager, NavigationEvent, PopupName } from '../utils/NavigationManager';
 import { SoundManager } from '../utils/SoundManager';
-import { loadFromStorage, getSoundEnabled, setSoundEnabled, getVibrationEnabled, setVibrationEnabled } from '../data/UserProfile';
+import { loadFromStorage, getSoundEnabled, setSoundEnabled, getMusicEnabled, setMusicEnabled } from '../data/UserProfile';
 
 const { ccclass, property } = _decorator;
 
@@ -9,10 +9,10 @@ const { ccclass, property } = _decorator;
  * 用户设置数据
  */
 interface UserSettings {
-    /** 是否开启音效 */
+    /** 是否开启音效（短音效） */
     soundEnabled: boolean;
-    /** 是否开启震动 */
-    vibrationEnabled: boolean;
+    /** 是否开启背景音乐 */
+    musicEnabled: boolean;
 }
 
 /**
@@ -124,7 +124,7 @@ export class SettingPopupController extends Component {
         }
 
         if (this.musicSwitch) {
-            this.musicSwitch.isChecked = getVibrationEnabled();
+            this.musicSwitch.isChecked = getMusicEnabled();
         }
     }
 
@@ -184,21 +184,11 @@ export class SettingPopupController extends Component {
     }
 
     /**
-     * 音乐/震动开关切换
+     * 背景音乐开关切换
      */
     private onMusicSwitch(toggle: Toggle): void {
-        setVibrationEnabled(toggle.isChecked);
-        if (toggle.isChecked) {
-            this.testVibration();
-        }
-    }
-
-    /**
-     * 测试震动
-     */
-    private testVibration(): void {
-        // TODO: 实现设备震动
-        console.log('[SettingPopupController] 测试震动');
+        setMusicEnabled(toggle.isChecked);
+        SoundManager.instance?.applyMusicSetting();
     }
 
     /**
@@ -214,7 +204,7 @@ export class SettingPopupController extends Component {
     public get userSettings(): UserSettings {
         return {
             soundEnabled: getSoundEnabled(),
-            vibrationEnabled: getVibrationEnabled()
+            musicEnabled: getMusicEnabled()
         };
     }
 
@@ -227,10 +217,11 @@ export class SettingPopupController extends Component {
     }
 
     /**
-     * 设置震动状态
+     * 设置背景音乐状态
      */
-    public setVibrationEnabled(enabled: boolean): void {
-        setVibrationEnabled(enabled);
+    public setMusicEnabled(enabled: boolean): void {
+        setMusicEnabled(enabled);
+        SoundManager.instance?.applyMusicSetting();
         this.updateUI();
     }
 }

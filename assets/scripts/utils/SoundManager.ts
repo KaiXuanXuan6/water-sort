@@ -1,5 +1,5 @@
 import { _decorator, Component, AudioSource, AudioClip, assetManager } from 'cc';
-import { getSoundEnabled } from '../data/UserProfile';
+import { getSoundEnabled, getMusicEnabled } from '../data/UserProfile';
 import { NavigationManager, NavigationEvent, SceneName } from './NavigationManager';
 
 const { ccclass, property } = _decorator;
@@ -21,6 +21,7 @@ export class SoundManager extends Component {
     sfxAudioSource: AudioSource | null = null;
 
     private static _instance: SoundManager | null = null;
+    private _currentBGM: BGMClipKey | null = null;
 
     public static get instance(): SoundManager | null {
         return SoundManager._instance;
@@ -75,12 +76,17 @@ export class SoundManager extends Component {
     }
 
     /**
-     * 播放背景音乐（会先停止当前 BGM，再加载并播放指定 clip）
+     * 播放背景音乐（会先停止当前 BGM，再加载并播放指定 clip）。
+     * 若当前已在播放同一首 BGM 则不重新播放，避免 Home/Collection/Map 切换时重头播。
      */
     public playBGM(clipKey: BGMClipKey): void {
-        if (!getSoundEnabled()) return;
+        if (!getMusicEnabled()) {
+            this.stopBGM();
+            return;
+        }
         const src = this.bgmAudioSource;
         if (!src) return;
+        if (this._currentBGM === clipKey && src.playing) return;
         const path = `${SOUND_DIR}/${clipKey}`;
         assetManager.resources.load(path, AudioClip, (err, clip) => {
             if (err || !clip) {
@@ -91,6 +97,7 @@ export class SoundManager extends Component {
             src.clip = clip;
             src.loop = true;
             src.play();
+            this._currentBGM = clipKey;
         });
     }
 
@@ -100,6 +107,19 @@ export class SoundManager extends Component {
     public stopBGM(): void {
         const src = this.bgmAudioSource;
         if (src) src.stop();
+        this._currentBGM = null;
+    }
+
+    /**
+     * 应用背景音乐开关（设置弹窗中 Music 开关切换后调用，立即生效）
+     */
+    public applyMusicSetting(): void {
+        if (!getMusicEnabled()) {
+            this.stopBGM();
+            return;
+        }
+        const nav = NavigationManager.instance;
+        if (nav) this._onSceneComplete({ sceneName: nav.currentScene });
     }
 
     /**

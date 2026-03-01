@@ -1,4 +1,5 @@
 import { _decorator, Component, Node, Toggle, tween, Tween, Vec3, UIOpacity } from 'cc';
+import { SoundManager } from '../utils/SoundManager';
 
 const { ccclass, property } = _decorator;
 
@@ -54,6 +55,7 @@ export class SliderSwitch extends Component {
     }
 
     private onToggle(toggle: Toggle): void {
+        SoundManager.instance?.playOneShot('select');
         this.syncToState(toggle.isChecked, true);
     }
 
