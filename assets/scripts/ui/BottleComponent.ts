@@ -1,4 +1,4 @@
-import { _decorator, Component, Sprite, UITransform, Color, Vec3, tween, Vec2, Node, EventTouch, Mask, Graphics, UITransform as UITransformType, Material } from 'cc';
+import { _decorator, Component, Sprite, UITransform, Color, Vec3, Vec4, tween, Vec2, Node, EventTouch, Mask, Graphics, UITransform as UITransformType, Material } from 'cc';
 import { BottleState, WaterLayer } from '../data/LevelConfig';
 import { AssetLoader } from '../utils/AssetLoader';
 
@@ -99,6 +99,8 @@ export class BottleComponent extends Component {
     private _waterMaterial: Material | null = null;
     /** 上一帧瓶子角度，用于减少 setProperty 调用 */
     private _lastAngle: number = 0;
+    /** 当前 waveType，与 tiltAngle 一起写入 tiltWave (vec4)，满足引擎 FLOAT4 */
+    private _lastWaveType: number = 0;
 
     /** Shader 最大水层数，与 effect 中一致 */
     private static readonly LIQUID_MAX_LAYERS = 4;
@@ -232,7 +234,7 @@ export class BottleComponent extends Component {
     protected update(_dt: number): void {
         if (this._waterMaterial && this.node.angle !== this._lastAngle) {
             this._lastAngle = this.node.angle;
-            this._waterMaterial.setProperty('tiltAngle', this.node.angle);
+            this._waterMaterial.setProperty('tiltWave', new Vec4(this.node.angle, this._lastWaveType, 0, 0));
         }
     }
 
@@ -249,6 +251,11 @@ export class BottleComponent extends Component {
     public init(index: number, data: BottleState): void {
         this._bottleIndex = index;
         this._bottleData = data;
+
+        // 使用 liquid 材质时先隐藏，避免在 syncWaterToShader 前被绘制导致 UBO 未绑定
+        if (this.waterSprite?.customMaterial) {
+            this.waterSprite.node.active = false;
+        }
 
         // 先加载瓶子图与 waterContainer 的 x_2 遮罩图，再渲染水层（保证 SPRITE_STENCIL 生效）
         this.applyBottleType().then(() => {
@@ -336,7 +343,8 @@ export class BottleComponent extends Component {
             if (this._waterMaterial) {
                 this.syncWaterToShader(waters, capacity);
                 this.waterSprite.node.active = waters.length > 0;
-                this._waterMaterial.setProperty('waveType', 0);
+                this._lastWaveType = 0;
+                this._waterMaterial.setProperty('tiltWave', new Vec4(this.node.angle, 0, 0, 0));
             }
             this.clearWaterLayers();
         } else {
@@ -431,34 +439,28 @@ export class BottleComponent extends Component {
 
         const cw = BottleComponent.BOTTLE_INNER_WIDTH;
         const ch = BottleComponent.BOTTLE_INNER_HEIGHT;
-        mat.setProperty('resolution', new Vec2(cw, ch));
+        mat.setProperty('resolution', new Vec4(cw, ch, 0, 0));
 
         const layerHeight = 1 / capacity;
-        const colorsData = new Float32Array(BottleComponent.LIQUID_MAX_LAYERS * 4);
-        const heightsData = new Float32Array(BottleComponent.LIQUID_MAX_LAYERS * 4);
-
+        const colorsVec4: Vec4[] = [];
+        const heightsVec4: Vec4[] = [];
         const total = incoming ? layers.length + 1 : layers.length;
         for (let i = 0; i < BottleComponent.LIQUID_MAX_LAYERS; i++) {
             if (i < layers.length) {
                 const c = this.getColorById(layers[i].colorId);
-                colorsData[i * 4 + 0] = c.r / 255;
-                colorsData[i * 4 + 1] = c.g / 255;
-                colorsData[i * 4 + 2] = c.b / 255;
-                colorsData[i * 4 + 3] = 1;
-                heightsData[i * 4] = layerHeight;
+                colorsVec4.push(new Vec4(c.r / 255, c.g / 255, c.b / 255, 1));
+                heightsVec4.push(new Vec4(layerHeight, 0, 0, 0));
             } else if (incoming && i === layers.length) {
                 const c = this.getColorById(incoming.colorId);
-                colorsData[i * 4 + 0] = c.r / 255;
-                colorsData[i * 4 + 1] = c.g / 255;
-                colorsData[i * 4 + 2] = c.b / 255;
-                colorsData[i * 4 + 3] = 1;
-                heightsData[i * 4] = incoming.heightRatio;
+                colorsVec4.push(new Vec4(c.r / 255, c.g / 255, c.b / 255, 1));
+                heightsVec4.push(new Vec4(incoming.heightRatio, 0, 0, 0));
             } else {
-                heightsData[i * 4] = 0;
+                colorsVec4.push(new Vec4(0, 0, 0, 0));
+                heightsVec4.push(new Vec4(0, 0, 0, 0));
             }
         }
-        mat.setProperty('colors', colorsData as any);
-        mat.setProperty('heights', heightsData as any);
+        mat.setProperty('colors', colorsVec4);
+        mat.setProperty('heights', heightsVec4);
     }
 
     /**
@@ -849,7 +851,8 @@ export class BottleComponent extends Component {
                 this._incomingPourNode = null;
             }
             if (this._waterMaterial) {
-                this._waterMaterial.setProperty('waveType', 0);
+                this._lastWaveType = 0;
+                this._waterMaterial.setProperty('tiltWave', new Vec4(this.node.angle, 0, 0, 0));
             }
             return;
         }
@@ -862,7 +865,8 @@ export class BottleComponent extends Component {
                 this._incomingPourNode = null;
             }
             if (this._waterMaterial) {
-                this._waterMaterial.setProperty('waveType', 0);
+                this._lastWaveType = 0;
+                this._waterMaterial.setProperty('tiltWave', new Vec4(this.node.angle, 0, 0, 0));
             }
             return;
         }
@@ -871,7 +875,8 @@ export class BottleComponent extends Component {
             this._waterMaterial = this.waterSprite.getMaterialInstance(0) || null;
         }
         if (this._waterMaterial) {
-            this._waterMaterial.setProperty('waveType', 2);
+            this._lastWaveType = 2;
+            this._waterMaterial.setProperty('tiltWave', new Vec4(this.node.angle, 2, 0, 0));
             const waters = this._bottleData?.waters ?? [];
             const incomingHeightRatio = (ratio * pourLayerCount) / capacity;
             this.syncWaterToShader(waters, capacity, { colorId, heightRatio: incomingHeightRatio });

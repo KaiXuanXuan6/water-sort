@@ -16,9 +16,10 @@ CCEffect %{
         cullMode: none
       properties:
         mainTexture: { value: white }
-        resolution:  { value: [1, 1] }
-        tiltAngle:   { value: 0 }
-        waveType:    { value: 0 }
+        resolution: { value: [46, 180, 0, 0], editor: { visible: false } }
+        colors: { value: [[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]], editor: { visible: false } }
+        heights: { value: [[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]], editor: { visible: false } }
+        tiltWave: { value: [0, 0, 0, 0], editor: { visible: false } }
 }%
 
 CCProgram liquid-fs %{
@@ -36,9 +37,8 @@ CCProgram liquid-fs %{
   uniform LiquidParams {
     vec4 colors[4];
     vec4 heights[4];
-    vec2 resolution;
-    float tiltAngle;
-    float waveType;
+    vec4 resolution;  // xy = size, zw unused
+    vec4 tiltWave;     // x = tiltAngle, y = waveType; vec4 for engine FLOAT4
   };
 
   vec2 rotatePt(vec2 uv, float angle, vec2 center) {
@@ -81,10 +81,10 @@ CCProgram liquid-fs %{
 
     float y = 0.0;
     bool isTopLayer = (curIdx == layerCount - 1);
-    if (isTopLayer && abs(waveType) > 0.01) {
-      float amplitude = abs(waveType - 1.0) < 0.01 ? 0.08 : 0.03;
-      float omega     = abs(waveType - 1.0) < 0.01 ? 10.0 : 5.0;
-      float freq      = abs(waveType - 1.0) < 0.01 ? 10.0 : 6.0;
+    if (isTopLayer && abs(tiltWave.y) > 0.01) {
+      float amplitude = abs(tiltWave.y - 1.0) < 0.01 ? 0.08 : 0.03;
+      float omega     = abs(tiltWave.y - 1.0) < 0.01 ? 10.0 : 5.0;
+      float freq      = abs(tiltWave.y - 1.0) < 0.01 ? 10.0 : 6.0;
       y = amplitude * sin(omega * uv1.x + freq * cc_time.x * (toLeft ? 1.0 : -1.0));
     }
 
@@ -95,7 +95,7 @@ CCProgram liquid-fs %{
     vec4 texColor = texture(mainTexture, v_uv);
     if (texColor.a < 0.01) discard;
 
-    float angle = mod(tiltAngle, 360.0) * PI / 180.0;
+    float angle = mod(tiltWave.x, 360.0) * PI / 180.0;
 
     int layerCount = 0;
     for (int i = 0; i < MAX_LAYERS; i++) {
