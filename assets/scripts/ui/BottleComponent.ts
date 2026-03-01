@@ -1,5 +1,5 @@
 import { _decorator, Component, Sprite, UITransform, Color, Vec3, Vec4, tween, Vec2, Node, EventTouch, Mask, Graphics, UITransform as UITransformType, Material } from 'cc';
-import { BottleState, WaterLayer } from '../data/LevelConfig';
+import { BottleState } from '../data/LevelConfig';
 import { AssetLoader } from '../utils/AssetLoader';
 
 const { ccclass, property } = _decorator;
@@ -55,7 +55,7 @@ export class BottleComponent extends Component {
     @property(Node)
     waterContainer: Node | null = null;
 
-    /** 液体 Sprite（使用 water-sort-liquid 材质，用于倾斜+波纹渲染；无则退化为 Graphics 水层） */
+    /** 液体 Sprite（使用 water-sort-liquid 材质，用于倾斜+波纹渲染） */
     @property(Sprite)
     waterSprite: Sprite | null = null;
 
@@ -79,7 +79,6 @@ export class BottleComponent extends Component {
     private _bottleIndex: number = -1;
     private _bottleState: BottleStateEnum = BottleStateEnum.IDLE;
     private _bottleData: BottleState | null = null;
-    private _waterLayerNodes: Node[] = [];
     private _originalPosition: Vec3 = new Vec3();
     /** 目标瓶临时注入层节点（用于倒水动画中液面上涨） */
     private _incomingPourNode: Node | null = null;
@@ -320,7 +319,7 @@ export class BottleComponent extends Component {
     // ========== 渲染方法 ==========
 
     /**
-     * 渲染水层（若已绑定 waterSprite 则仅同步 Shader，否则用 Graphics 水层）
+     * 渲染水层（同步到 water-sort-liquid Shader，需已绑定 waterSprite）
      */
     public renderWaterLayers(): void {
         if (!this._bottleData || !this.waterContainer) {
@@ -336,91 +335,19 @@ export class BottleComponent extends Component {
         const ch = BottleComponent.BOTTLE_INNER_HEIGHT;
         transform.setContentSize(cw, ch);
 
-        if (this.waterSprite) {
-            if (!this._waterMaterial && this.waterSprite.customMaterial) {
-                this._waterMaterial = this.waterSprite.getMaterialInstance(0) || null;
-            }
-            if (this._waterMaterial) {
-                this.syncWaterToShader(waters, capacity);
-                this.waterSprite.node.active = waters.length > 0;
-                this._lastWaveType = 0;
-                this._waterMaterial.setProperty('tiltWave', new Vec4(this.node.angle, 0, 0, 0));
-            }
-            this.clearWaterLayers();
-        } else {
-            this.clearWaterLayers();
-            const effectiveLayerHeight = ch / capacity;
-            const layerHeight = Math.max(1, effectiveLayerHeight);
-            const anchorY = transform.anchorPoint.y;
-            const containerBottom = anchorY <= 0.25 ? 0 : -ch / 2;
-            for (let i = 0; i < waters.length; i++) {
-                this.createWaterLayer(waters[i], i, waters.length, cw, layerHeight, containerBottom, effectiveLayerHeight);
-            }
+        if (!this.waterSprite) return;
+
+        if (!this._waterMaterial && this.waterSprite.customMaterial) {
+            this._waterMaterial = this.waterSprite.getMaterialInstance(0) || null;
+        }
+        if (this._waterMaterial) {
+            this.syncWaterToShader(waters, capacity);
+            this.waterSprite.node.active = waters.length > 0;
+            this._lastWaveType = 0;
+            this._waterMaterial.setProperty('tiltWave', new Vec4(this.node.angle, 0, 0, 0));
         }
 
         console.log(`[BottleComponent] 渲染水层: ${waters.length} 层`);
-    }
-
-    /**
-     * 创建单个水层
-     */
-    private createWaterLayer(
-        waterData: WaterLayer,
-        index: number,
-        _totalLayers: number,
-        layerWidth: number,
-        layerHeight: number,
-        containerBottom: number,
-        effectiveLayerHeight: number
-    ): Node {
-        const waterNode = this.createDefaultWaterLayer(layerWidth, layerHeight);
-
-        waterNode.name = `WaterLayer_${index}`;
-        waterNode.active = true;
-
-        const yPos = Math.round(containerBottom + (index + 0.5) * effectiveLayerHeight);
-        waterNode.setPosition(0, yPos);
-
-        const graphics = waterNode.getComponent(Graphics);
-        if (graphics) {
-            const color = this.getColorById(waterData.colorId);
-            graphics.clear();
-            graphics.rect(-layerWidth / 2, -layerHeight / 2, layerWidth, layerHeight);
-            graphics.fillColor = color;
-            graphics.fill();
-        }
-
-        this.waterContainer!.addChild(waterNode);
-        this._waterLayerNodes.push(waterNode);
-
-        return waterNode;
-    }
-
-    /**
-     * 创建默认水层节点（宽高与容器内单层一致，由调用方传入）
-     */
-    private createDefaultWaterLayer(layerWidth: number, layerHeight: number): Node {
-        const node = new Node('WaterLayer');
-        const transform = node.addComponent(UITransformType);
-        const graphics = node.addComponent(Graphics);
-
-        transform.setContentSize(layerWidth, layerHeight);
-
-        graphics.rect(-layerWidth / 2, -layerHeight / 2, layerWidth, layerHeight);
-        graphics.fillColor = Color.WHITE;
-        graphics.fill();
-
-        return node;
-    }
-
-    /**
-     * 清空水层
-     */
-    private clearWaterLayers(): void {
-        for (const node of this._waterLayerNodes) {
-            node.destroy();
-        }
-        this._waterLayerNodes = [];
     }
 
     /**
@@ -677,7 +604,7 @@ export class BottleComponent extends Component {
 
             this.schedule(this._updatePourProgress, 0.02);
 
-            if (this.waterContainer && this._waterLayerNodes.length > 0) {
+            if (this.waterContainer && this.getWaterCount() > 0) {
                 const capacity = this.getCapacity() || 4;
                 const ch = BottleComponent.BOTTLE_INNER_HEIGHT;
                 const effectiveLayerHeight = ch / capacity;
@@ -687,10 +614,6 @@ export class BottleComponent extends Component {
                 const currentLayers = this.getWaterCount();
                 const fullHeight = currentLayers * effectiveLayerHeight;
                 const remainHeight = Math.max(0, (currentLayers - movedCount) * effectiveLayerHeight);
-
-                for (const n of this._waterLayerNodes) {
-                    n.active = false;
-                }
 
                 const pourBlock = new Node('PourBlock');
                 const blockUT = pourBlock.addComponent(UITransformType);
