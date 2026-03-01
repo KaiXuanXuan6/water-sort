@@ -1,4 +1,4 @@
-import { _decorator, Component, Sprite, UITransform, Color, Vec3, tween, Vec2, Node, EventTouch, Mask, Graphics, UITransform as UITransformType } from 'cc';
+import { _decorator, Component, Sprite, UITransform, Color, Vec3, tween, Vec2, Node, EventTouch, Mask, Graphics, UITransform as UITransformType, Material } from 'cc';
 import { BottleState, WaterLayer } from '../data/LevelConfig';
 import { AssetLoader } from '../utils/AssetLoader';
 
@@ -55,6 +55,10 @@ export class BottleComponent extends Component {
     @property(Node)
     waterContainer: Node | null = null;
 
+    /** 液体 Sprite（使用 water-sort-liquid 材质，用于倾斜+波纹渲染；无则退化为 Graphics 水层） */
+    @property(Sprite)
+    waterSprite: Sprite | null = null;
+
     /** 选中状态偏移量（Y轴） */
     @property({ tooltip: '选中时向上移动的距离' })
     selectedOffset: number = 30;
@@ -90,6 +94,14 @@ export class BottleComponent extends Component {
     private _pourMovedCount: number = 0;
     /** Phase 3 临时液块节点（整体倾倒用） */
     private _pourBlockNode: Node | null = null;
+
+    /** 液体材质实例（来自 waterSprite），用于同步 tiltAngle / colors / heights / waveType */
+    private _waterMaterial: Material | null = null;
+    /** 上一帧瓶子角度，用于减少 setProperty 调用 */
+    private _lastAngle: number = 0;
+
+    /** Shader 最大水层数，与 effect 中一致 */
+    private static readonly LIQUID_MAX_LAYERS = 4;
 
     // 颜色配置（可在运行时修改）- 高对比、易区分、偏糖果感
     private static colorConfigs: ColorConfig[] = [
@@ -217,6 +229,13 @@ export class BottleComponent extends Component {
     protected start(): void {
     }
 
+    protected update(_dt: number): void {
+        if (this._waterMaterial && this.node.angle !== this._lastAngle) {
+            this._lastAngle = this.node.angle;
+            this._waterMaterial.setProperty('tiltAngle', this.node.angle);
+        }
+    }
+
     protected onDestroy(): void {
         // 移除事件监听
         this.node.off(Node.EventType.TOUCH_START, this.onTouchStart, this);
@@ -294,32 +313,41 @@ export class BottleComponent extends Component {
     // ========== 渲染方法 ==========
 
     /**
-     * 渲染水层
+     * 渲染水层（若已绑定 waterSprite 则仅同步 Shader，否则用 Graphics 水层）
      */
     public renderWaterLayers(): void {
         if (!this._bottleData || !this.waterContainer) {
             return;
         }
 
-        this.clearWaterLayers();
-
         const waters = this._bottleData.waters;
         const capacity = this._bottleData.capacity;
         const transform = this.waterContainer.getComponent(UITransformType);
         if (!transform) return;
 
-        // 与 1_2 内腔素材尺寸一致（45x180）
         const cw = BottleComponent.BOTTLE_INNER_WIDTH;
         const ch = BottleComponent.BOTTLE_INNER_HEIGHT;
         transform.setContentSize(cw, ch);
 
-        const effectiveLayerHeight = ch / capacity;
-        const layerHeight = Math.max(1, effectiveLayerHeight);
-        const anchorY = transform.anchorPoint.y;
-        const containerBottom = anchorY <= 0.25 ? 0 : -ch / 2;
-
-        for (let i = 0; i < waters.length; i++) {
-            this.createWaterLayer(waters[i], i, waters.length, cw, layerHeight, containerBottom, effectiveLayerHeight);
+        if (this.waterSprite) {
+            if (!this._waterMaterial && this.waterSprite.customMaterial) {
+                this._waterMaterial = this.waterSprite.getMaterialInstance(0) || null;
+            }
+            if (this._waterMaterial) {
+                this.syncWaterToShader(waters, capacity);
+                this.waterSprite.node.active = waters.length > 0;
+                this._waterMaterial.setProperty('waveType', 0);
+            }
+            this.clearWaterLayers();
+        } else {
+            this.clearWaterLayers();
+            const effectiveLayerHeight = ch / capacity;
+            const layerHeight = Math.max(1, effectiveLayerHeight);
+            const anchorY = transform.anchorPoint.y;
+            const containerBottom = anchorY <= 0.25 ? 0 : -ch / 2;
+            for (let i = 0; i < waters.length; i++) {
+                this.createWaterLayer(waters[i], i, waters.length, cw, layerHeight, containerBottom, effectiveLayerHeight);
+            }
         }
 
         console.log(`[BottleComponent] 渲染水层: ${waters.length} 层`);
@@ -385,6 +413,52 @@ export class BottleComponent extends Component {
             node.destroy();
         }
         this._waterLayerNodes = [];
+    }
+
+    /**
+     * 将水层数据同步到液体 Shader（colors、heights、resolution）。
+     * @param layers 当前水层列表
+     * @param capacity 瓶子容量，用于计算每层归一化高度
+     * @param incoming 可选：正在倒入的一层，高度为归一化值（0~1），用于目标瓶液面上涨+波纹
+     */
+    private syncWaterToShader(
+        layers: { colorId: number }[],
+        capacity: number,
+        incoming?: { colorId: number; heightRatio: number }
+    ): void {
+        const mat = this._waterMaterial;
+        if (!mat || capacity <= 0) return;
+
+        const cw = BottleComponent.BOTTLE_INNER_WIDTH;
+        const ch = BottleComponent.BOTTLE_INNER_HEIGHT;
+        mat.setProperty('resolution', new Vec2(cw, ch));
+
+        const layerHeight = 1 / capacity;
+        const colorsData = new Float32Array(BottleComponent.LIQUID_MAX_LAYERS * 4);
+        const heightsData = new Float32Array(BottleComponent.LIQUID_MAX_LAYERS * 4);
+
+        const total = incoming ? layers.length + 1 : layers.length;
+        for (let i = 0; i < BottleComponent.LIQUID_MAX_LAYERS; i++) {
+            if (i < layers.length) {
+                const c = this.getColorById(layers[i].colorId);
+                colorsData[i * 4 + 0] = c.r / 255;
+                colorsData[i * 4 + 1] = c.g / 255;
+                colorsData[i * 4 + 2] = c.b / 255;
+                colorsData[i * 4 + 3] = 1;
+                heightsData[i * 4] = layerHeight;
+            } else if (incoming && i === layers.length) {
+                const c = this.getColorById(incoming.colorId);
+                colorsData[i * 4 + 0] = c.r / 255;
+                colorsData[i * 4 + 1] = c.g / 255;
+                colorsData[i * 4 + 2] = c.b / 255;
+                colorsData[i * 4 + 3] = 1;
+                heightsData[i * 4] = incoming.heightRatio;
+            } else {
+                heightsData[i * 4] = 0;
+            }
+        }
+        mat.setProperty('colors', colorsData as any);
+        mat.setProperty('heights', heightsData as any);
     }
 
     /**
@@ -774,6 +848,9 @@ export class BottleComponent extends Component {
                 this._incomingPourNode.destroy();
                 this._incomingPourNode = null;
             }
+            if (this._waterMaterial) {
+                this._waterMaterial.setProperty('waveType', 0);
+            }
             return;
         }
         const capacity = this.getCapacity() || 4;
@@ -784,8 +861,22 @@ export class BottleComponent extends Component {
                 this._incomingPourNode.destroy();
                 this._incomingPourNode = null;
             }
+            if (this._waterMaterial) {
+                this._waterMaterial.setProperty('waveType', 0);
+            }
             return;
         }
+
+        if (this.waterSprite && !this._waterMaterial && this.waterSprite.customMaterial) {
+            this._waterMaterial = this.waterSprite.getMaterialInstance(0) || null;
+        }
+        if (this._waterMaterial) {
+            this._waterMaterial.setProperty('waveType', 2);
+            const waters = this._bottleData?.waters ?? [];
+            const incomingHeightRatio = (ratio * pourLayerCount) / capacity;
+            this.syncWaterToShader(waters, capacity, { colorId, heightRatio: incomingHeightRatio });
+        }
+
         const transform = this.waterContainer.getComponent(UITransformType);
         if (!transform) return;
         const anchorY = transform.anchorPoint.y;

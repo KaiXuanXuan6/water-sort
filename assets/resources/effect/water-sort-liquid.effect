@@ -1,0 +1,118 @@
+CCEffect %{
+  techniques:
+  - name: transparent
+    passes:
+    - vert: general-vs:vert
+      frag: liquid-fs:frag
+      depthStencilState:
+        depthTest: false
+        depthWrite: false
+      blendState:
+        targets:
+        - blend: true
+          blendSrc: src_alpha
+          blendDst: one_minus_src_alpha
+      rasterizerState:
+        cullMode: none
+      properties:
+        mainTexture: { value: white }
+        resolution:  { value: [1, 1] }
+        tiltAngle:   { value: 0 }
+        waveType:    { value: 0 }
+}%
+
+CCProgram liquid-fs %{
+  precision highp float;
+  #include <legacy/output>
+  #include <builtin/uniforms/cc-global>
+
+  in vec2 v_uv;
+
+  #define PI 3.14159265359
+  #define MAX_LAYERS 4
+
+  uniform sampler2D mainTexture;
+
+  uniform LiquidParams {
+    vec4 colors[4];
+    vec4 heights[4];
+    vec2 resolution;
+    float tiltAngle;
+    float waveType;
+  };
+
+  vec2 rotatePt(vec2 uv, float angle, vec2 center) {
+    float c = cos(angle), s = sin(angle);
+    vec2 d = uv - center;
+    return vec2(c*d.x - s*d.y, s*d.x + c*d.y) + center;
+  }
+
+  float drawWater(vec2 uv, float angle, float _height, int layerCount, int curIdx) {
+    float ratio = resolution.y / resolution.x;
+    bool toLeft = sin(angle) >= 0.0;
+    vec2 center = vec2(0.5, 1.0 - _height);
+    float _t = abs(tan(angle));
+
+    if (_height < 0.5) {
+      if (_t / ratio > 2.0 * _height) {
+        center.x = sqrt(2.0 * _height / _t * ratio) / 2.0;
+        center.y = 1.0 - sqrt(2.0 * _height * _t / ratio) / 2.0;
+        if (_t > ratio / (_height * 2.0)) {
+          center.y = 0.5;
+          center.x = _height;
+        }
+      }
+      if (!toLeft) center.x = 1.0 - center.x;
+    } else {
+      if (_t > 2.0 * ratio * (1.0 - _height)) {
+        center.x = sqrt(2.0 * ratio * (1.0 - _height) / _t) / 2.0;
+        center.y = sqrt(2.0 * ratio * (1.0 - _height) * _t) / 2.0 / ratio;
+        if (_t > ratio / (2.0 * (1.0 - _height))) {
+          center.y = 0.5;
+          center.x = 1.0 - _height;
+        }
+      }
+      if (toLeft) center.x = 1.0 - center.x;
+    }
+
+    uv.y *= ratio;
+    uv -= vec2(center.x, center.y * ratio);
+    vec2 uv1 = rotatePt(uv, angle, vec2(0.0));
+
+    float y = 0.0;
+    bool isTopLayer = (curIdx == layerCount - 1);
+    if (isTopLayer && abs(waveType) > 0.01) {
+      float amplitude = abs(waveType - 1.0) < 0.01 ? 0.08 : 0.03;
+      float omega     = abs(waveType - 1.0) < 0.01 ? 10.0 : 5.0;
+      float freq      = abs(waveType - 1.0) < 0.01 ? 10.0 : 6.0;
+      y = amplitude * sin(omega * uv1.x + freq * cc_time.x * (toLeft ? 1.0 : -1.0));
+    }
+
+    return (uv1.y > y) ? 1.0 : 0.0;
+  }
+
+  vec4 frag() {
+    vec4 texColor = texture(mainTexture, v_uv);
+    if (texColor.a < 0.01) discard;
+
+    float angle = mod(tiltAngle, 360.0) * PI / 180.0;
+
+    int layerCount = 0;
+    for (int i = 0; i < MAX_LAYERS; i++) {
+      if (heights[i].x > 0.001) layerCount++;
+    }
+
+    float cumHeight = 0.0;
+    for (int i = 0; i < MAX_LAYERS; i++) {
+      if (heights[i].x < 0.001) continue;
+      cumHeight += heights[i].x;
+      float a = drawWater(v_uv, angle, cumHeight, layerCount, i);
+      if (a > 0.0) {
+        return CCFragOutput(texColor * a * colors[i]);
+      }
+    }
+
+    discard;
+    return CCFragOutput(vec4(0.0));
+  }
+}%
