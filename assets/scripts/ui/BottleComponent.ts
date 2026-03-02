@@ -382,7 +382,7 @@ export class BottleComponent extends Component {
     }
 
     /**
-     * 将水层数据同步到液体 Shader（color0~3、height0~3、resolution）。
+     * 将水层数据同步到液体 Shader（colors、heights 数组，resolution）。
      * @param layers 当前水层列表
      * @param capacity 瓶子容量，用于计算每层归一化高度
      * @param incoming 可选：正在倒入的一层，高度为归一化值（0~1），用于目标瓶液面上涨+波纹
@@ -415,6 +415,8 @@ export class BottleComponent extends Component {
                 if (remain <= 1e-6) break;
             }
         }
+        const colors: Vec4[] = [];
+        const heights: Vec4[] = [];
         for (let i = 0; i < BottleComponent.LIQUID_MAX_LAYERS; i++) {
             let colorValue = new Vec4(0, 0, 0, 0);
             let heightValue = new Vec4(0, 0, 0, 0);
@@ -427,9 +429,11 @@ export class BottleComponent extends Component {
                 colorValue = new Vec4(c.r / 255, c.g / 255, c.b / 255, 1);
                 heightValue = new Vec4(incoming.heightRatio, 0, 0, 0);
             }
-            mat.setProperty(`color${i}`, colorValue);
-            mat.setProperty(`height${i}`, heightValue);
+            colors.push(colorValue);
+            heights.push(heightValue);
         }
+        mat.setProperty('colors', colors);
+        mat.setProperty('heights', heights);
     }
 
     /**
