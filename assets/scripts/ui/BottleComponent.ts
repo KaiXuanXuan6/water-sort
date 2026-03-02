@@ -1,4 +1,4 @@
-import { _decorator, Component, Sprite, Color, Vec3, Vec4, tween, Node, EventTouch, Mask, UITransform as UITransformType, Material } from 'cc';
+import { _decorator, Component, Sprite, Color, Vec3, Vec4, tween, Node, EventTouch, Mask, UITransform as UITransformType, Material, Graphics } from 'cc';
 import { BottleState } from '../data/LevelConfig';
 import { AssetLoader } from '../utils/AssetLoader';
 
@@ -83,9 +83,14 @@ export class BottleComponent extends Component {
     /** 倒水阶段 3 进度更新用 */
     private _pourPhase3StartTime: number = 0;
     private _pourPhase3Duration: number = 0;
+    private _pourPhase3GrowDuration: number = 0;
+    private _pourPhase3ShrinkDuration: number = 0;
     private _pourTarget: BottleComponent | null = null;
     private _pourColorId: number = 0;
     private _pourMovedCount: number = 0;
+    private _pourTargetStartWaterCount: number = 0;
+    private _pourTargetCapacity: number = 0;
+    private _pourTargetFinalWaterCount: number = 0;
 
     /** 液体材质实例 */
     private _waterMaterial: Material | null = null;
@@ -96,6 +101,14 @@ export class BottleComponent extends Component {
 
     /** Shader 最大水层数，与 effect 中一致 */
     private static readonly LIQUID_MAX_LAYERS = 4;
+    /** 液柱生长/回缩每格时长（秒） */
+    private static readonly POUR_STREAM_UNIT_TIME = 0.05;
+    /** 液柱宽度（像素） */
+    private static readonly POUR_STREAM_WIDTH = 4;
+
+    /** 倒水液柱节点（Graphics） */
+    private _pourStreamNode: Node | null = null;
+    private _pourStreamGraphics: Graphics | null = null;
     // 颜色配置（可在运行时修改）- 高对比、易区分、偏糖果感
     private static colorConfigs: ColorConfig[] = [
         { colorId: 1, color: new Color(255, 82, 82) },    // 珊瑚红
@@ -232,6 +245,7 @@ export class BottleComponent extends Component {
     protected onDestroy(): void {
         // 移除事件监听
         this.node.off(Node.EventType.TOUCH_START, this.onTouchStart, this);
+        this.clearPourStream();
     }
 
     // ========== 初始化方法 ==========
@@ -374,7 +388,8 @@ export class BottleComponent extends Component {
     private syncWaterToShader(
         layers: { colorId: number }[],
         capacity: number,
-        incoming?: { colorId: number; heightRatio: number }
+        incoming?: { colorId: number; heightRatio: number },
+        outgoingDrainHeightRatio: number = 0
     ): void {
         const mat = this._waterMaterial;
         if (!mat || capacity <= 0) return;
@@ -385,13 +400,26 @@ export class BottleComponent extends Component {
         this.syncUvRangeToShader(mat);
 
         const layerHeight = 1 / capacity;
+        const effectiveHeights: number[] = new Array(BottleComponent.LIQUID_MAX_LAYERS).fill(0);
+        for (let i = 0; i < BottleComponent.LIQUID_MAX_LAYERS && i < layers.length; i++) {
+            effectiveHeights[i] = layerHeight;
+        }
+        if (outgoingDrainHeightRatio > 0 && layers.length > 0) {
+            let remain = Math.min(outgoingDrainHeightRatio, layers.length * layerHeight);
+            for (let i = Math.min(layers.length, BottleComponent.LIQUID_MAX_LAYERS) - 1; i >= 0; i--) {
+                const take = Math.min(effectiveHeights[i], remain);
+                effectiveHeights[i] -= take;
+                remain -= take;
+                if (remain <= 1e-6) break;
+            }
+        }
         for (let i = 0; i < BottleComponent.LIQUID_MAX_LAYERS; i++) {
             let colorValue = new Vec4(0, 0, 0, 0);
             let heightValue = new Vec4(0, 0, 0, 0);
             if (i < layers.length) {
                 const c = this.getColorById(layers[i].colorId);
                 colorValue = new Vec4(c.r / 255, c.g / 255, c.b / 255, 1);
-                heightValue = new Vec4(layerHeight, 0, 0, 0);
+                heightValue = new Vec4(Math.max(0, effectiveHeights[i]), 0, 0, 0);
             } else if (incoming && i === layers.length) {
                 const c = this.getColorById(incoming.colorId);
                 colorValue = new Vec4(c.r / 255, c.g / 255, c.b / 255, 1);
@@ -563,7 +591,7 @@ export class BottleComponent extends Component {
         const t1 = motionTime * (0.2 / 0.6);
         // Phase 2: 源瓶旋转到倾倒角度（液面倾斜开始变明显）
         const t2 = motionTime * (0.25 / 0.6);
-        // Phase 3: 保持倾倒并持续更新目标瓶液面上涨（单格时长 * 倒出格数）
+        // Phase 3a: 液体实际倒出/倒入时长（单格时长 * 倒出格数）
         const t3 = unitPourTime * Math.max(1, movedCount);
         // Phase 4: 源瓶回正并回到原位
         const t4 = motionTime * (0.15 / 0.6);
@@ -601,6 +629,7 @@ export class BottleComponent extends Component {
 
         const cleanup = (): void => {
             this.unschedule(this._updatePourProgress);
+            this.clearPourStream();
             targetBottle.setState(BottleStateEnum.IDLE, false);
             this.node.emit(BottleComponent.EVENT_POUR_END, {
                 from: this._bottleIndex,
@@ -609,12 +638,27 @@ export class BottleComponent extends Component {
             if (onComplete) onComplete();
         };
 
+        this._pourTargetStartWaterCount = targetBottle.getWaterCount();
+        this._pourTargetCapacity = Math.max(1, targetBottle.getCapacity() || 4);
+        this._pourTargetFinalWaterCount = Math.min(
+            this._pourTargetCapacity,
+            this._pourTargetStartWaterCount + movedCount
+        );
+        const growUnits = Math.max(0, this._pourTargetCapacity - this._pourTargetStartWaterCount);
+        const shrinkUnits = Math.max(0, this._pourTargetCapacity - this._pourTargetFinalWaterCount);
+        this._pourPhase3GrowDuration = growUnits * BottleComponent.POUR_STREAM_UNIT_TIME;
+        this._pourPhase3ShrinkDuration = shrinkUnits * BottleComponent.POUR_STREAM_UNIT_TIME;
+        const t3Total = this._pourPhase3GrowDuration + t3 + this._pourPhase3ShrinkDuration;
+
         const startPhase3 = (): void => {
             this._pourTarget = targetBottle;
             this._pourColorId = colorId;
             this._pourMovedCount = movedCount;
             this._pourPhase3StartTime = Date.now() / 1000;
-            this._pourPhase3Duration = t3;
+            this._pourPhase3Duration = t3Total;
+            if (parent) {
+                this.ensurePourStream(parent);
+            }
             this.schedule(this._updatePourProgress, 0.02);
         };
 
@@ -622,8 +666,12 @@ export class BottleComponent extends Component {
             .to(t1, { position: targetPos }, { easing: 'sineOut' })
             .to(t2, { angle: pourAngle }, { easing: 'sineInOut' })
             .call(startPhase3)
-            .delay(t3)
-            .call(() => this.unschedule(this._updatePourProgress))
+            .delay(t3Total)
+            .call(() => {
+                this.unschedule(this._updatePourProgress);
+                this.setOutgoingPour(1, this._pourMovedCount, 0);
+                this.clearPourStream();
+            })
             .to(t4, { position: this._originalPosition.clone(), angle: 0 }, { easing: 'sineOut' })
             .call(cleanup)
             .start();
@@ -631,13 +679,70 @@ export class BottleComponent extends Component {
 
     private _updatePourProgress(): void {
         const now = Date.now() / 1000;
-        let progress = (now - this._pourPhase3StartTime) / this._pourPhase3Duration;
-        progress = Math.min(1, Math.max(0, progress));
+        const elapsed = Math.max(0, now - this._pourPhase3StartTime);
 
         const target = this._pourTarget;
-        if (target && target.isValid) {
-            target.setIncomingPour(progress, this._pourColorId, this._pourMovedCount);
+        if (!target || !target.isValid) {
+            return;
         }
+
+        const grow = this._pourPhase3GrowDuration;
+        const shrink = this._pourPhase3ShrinkDuration;
+        const pour = Math.max(1e-6, this._pourPhase3Duration - grow - shrink);
+        const parent = this.node.parent;
+        const parentUT = parent?.getComponent(UITransformType) || null;
+
+        const sourceMouthWorld = new Vec3();
+        this.getMouthWorldPosition(sourceMouthWorld);
+        const sourceMouthLocal = parentUT ? parentUT.convertToNodeSpaceAR(sourceMouthWorld) : new Vec3();
+        const startFillRatio = this._pourTargetStartWaterCount / this._pourTargetCapacity;
+        const finalFillRatio = this._pourTargetFinalWaterCount / this._pourTargetCapacity;
+
+        if (elapsed < grow) {
+            target.setIncomingPour(0, this._pourColorId, this._pourMovedCount);
+            this.setOutgoingPour(0, this._pourMovedCount, 0);
+            if (parentUT) {
+                const growRatio = grow <= 1e-6 ? 1 : Math.min(1, elapsed / grow);
+                const startSurface = this.getTargetSurfaceInParent(parentUT, startFillRatio);
+                const streamEnd = new Vec3(
+                    sourceMouthLocal.x + (startSurface.x - sourceMouthLocal.x) * growRatio,
+                    sourceMouthLocal.y + (startSurface.y - sourceMouthLocal.y) * growRatio,
+                    0
+                );
+                this.drawPourStream(sourceMouthLocal, streamEnd, this._pourColorId);
+            }
+            return;
+        }
+
+        if (elapsed < grow + pour) {
+            const pourRatio = Math.min(1, Math.max(0, (elapsed - grow) / pour));
+            target.setIncomingPour(pourRatio, this._pourColorId, this._pourMovedCount);
+            this.setOutgoingPour(pourRatio, this._pourMovedCount, 2);
+            if (parentUT) {
+                const dynamicFillRatio = startFillRatio + (finalFillRatio - startFillRatio) * pourRatio;
+                const dynamicSurface = this.getTargetSurfaceInParent(parentUT, dynamicFillRatio);
+                this.drawPourStream(sourceMouthLocal, dynamicSurface, this._pourColorId);
+            }
+            return;
+        }
+
+        target.setIncomingPour(1, this._pourColorId, this._pourMovedCount);
+        this.setOutgoingPour(1, this._pourMovedCount, 0);
+        if (!parentUT) return;
+
+        const finalSurface = this.getTargetSurfaceInParent(parentUT, finalFillRatio);
+        if (shrink <= 1e-6) {
+            this.clearPourStream();
+            return;
+        }
+
+        const shrinkRatio = Math.min(1, Math.max(0, (elapsed - grow - pour) / shrink));
+        const streamTop = new Vec3(
+            sourceMouthLocal.x + (finalSurface.x - sourceMouthLocal.x) * shrinkRatio,
+            sourceMouthLocal.y + (finalSurface.y - sourceMouthLocal.y) * shrinkRatio,
+            0
+        );
+        this.drawPourStream(streamTop, finalSurface, this._pourColorId);
     }
 
     // ========== 事件处理 ==========
@@ -719,24 +824,12 @@ export class BottleComponent extends Component {
      */
     public setIncomingPour(ratio: number, colorId: number, pourLayerCount: number): void {
         if (!this.waterContainer || pourLayerCount <= 0) {
-            if (this._waterMaterial) {
-                this._lastWaveType = 0;
-                this._waterMaterial.setProperty('tiltWave', new Vec4(this.node.angle, 0, 0, 0));
-            }
-            if (this.waterSprite && (this._bottleData?.waters.length ?? 0) <= 0) {
-                this.waterSprite.node.active = false;
-            }
+            this.clearPourVisualState();
             return;
         }
         const capacity = this.getCapacity() || 4;
         if (ratio <= 0) {
-            if (this._waterMaterial) {
-                this._lastWaveType = 0;
-                this._waterMaterial.setProperty('tiltWave', new Vec4(this.node.angle, 0, 0, 0));
-            }
-            if (this.waterSprite && (this._bottleData?.waters.length ?? 0) <= 0) {
-                this.waterSprite.node.active = false;
-            }
+            this.clearPourVisualState();
             return;
         }
 
@@ -752,12 +845,129 @@ export class BottleComponent extends Component {
             }
         }
         if (this._waterMaterial) {
-            this._lastWaveType = 2;
-            this._waterMaterial.setProperty('tiltWave', new Vec4(this.node.angle, 2, 0, 0));
+            this._lastWaveType = 1;
+            this._waterMaterial.setProperty('tiltWave', new Vec4(this.node.angle, 1, 0, 0));
             const waters = this._bottleData?.waters ?? [];
             const incomingHeightRatio = (ratio * pourLayerCount) / capacity;
             this.syncWaterToShader(waters, capacity, { colorId, heightRatio: incomingHeightRatio });
         }
+    }
+
+    /**
+     * 设置源瓶临时倒出预览（倒水动画中源瓶液面下降），ratio 0 表示清除
+     */
+    private setOutgoingPour(ratio: number, pourLayerCount: number, waveType: number): void {
+        if (!this.waterContainer || pourLayerCount <= 0) {
+            this.clearPourVisualState();
+            return;
+        }
+        const capacity = this.getCapacity() || 4;
+        if (ratio <= 0) {
+            this.clearPourVisualState();
+            return;
+        }
+
+        if (this.waterSprite?.customMaterial) {
+            this.waterSprite.node.active = true;
+            if (!this._waterMaterial) {
+                this._waterMaterial = this.waterSprite.getMaterialInstance(0) || null;
+                if (!this._waterMaterial) {
+                    this.ensureWaterMaterial(() => { /* 下一帧继续由 setOutgoingPour 驱动 */ });
+                    return;
+                }
+            }
+        }
+
+        if (this._waterMaterial) {
+            this._lastWaveType = waveType;
+            this._waterMaterial.setProperty('tiltWave', new Vec4(this.node.angle, waveType, 0, 0));
+            const waters = this._bottleData?.waters ?? [];
+            const outgoingDrainHeightRatio = (ratio * pourLayerCount) / capacity;
+            this.syncWaterToShader(waters, capacity, undefined, outgoingDrainHeightRatio);
+        }
+    }
+
+    private clearPourVisualState(): void {
+        if (this._waterMaterial) {
+            this._lastWaveType = 0;
+            this._waterMaterial.setProperty('tiltWave', new Vec4(this.node.angle, 0, 0, 0));
+        }
+        if (this.waterSprite && (this._bottleData?.waters.length ?? 0) <= 0) {
+            this.waterSprite.node.active = false;
+        }
+    }
+
+    private ensurePourStream(parent: Node): void {
+        if (this._pourStreamGraphics && this._pourStreamNode?.isValid) {
+            return;
+        }
+        const streamNode = new Node(`PourStream_${this._bottleIndex}`);
+        parent.addChild(streamNode);
+        const targetIndex = this._pourTarget?.node?.getSiblingIndex() ?? this.node.getSiblingIndex();
+        const streamIndex = Math.max(0, Math.min(this.node.getSiblingIndex(), targetIndex) - 1);
+        streamNode.setSiblingIndex(streamIndex);
+        this._pourStreamNode = streamNode;
+        this._pourStreamGraphics = streamNode.addComponent(Graphics);
+    }
+
+    private clearPourStream(): void {
+        if (this._pourStreamGraphics) {
+            this._pourStreamGraphics.clear();
+        }
+        if (this._pourStreamNode && this._pourStreamNode.isValid) {
+            this._pourStreamNode.destroy();
+        }
+        this._pourStreamNode = null;
+        this._pourStreamGraphics = null;
+    }
+
+    private drawPourStream(top: Vec3, bottom: Vec3, colorId: number): void {
+        const g = this._pourStreamGraphics;
+        if (!g) return;
+        const dx = bottom.x - top.x;
+        const dy = bottom.y - top.y;
+        const len = Math.sqrt(dx * dx + dy * dy);
+        if (len < 1e-3) {
+            g.clear();
+            return;
+        }
+        const nx = dx / len;
+        const ny = dy / len;
+        const hw = BottleComponent.POUR_STREAM_WIDTH * 0.5;
+        const px = -ny * hw;
+        const py = nx * hw;
+        const p1x = top.x + px;
+        const p1y = top.y + py;
+        const p2x = top.x - px;
+        const p2y = top.y - py;
+        const p3x = bottom.x - px;
+        const p3y = bottom.y - py;
+        const p4x = bottom.x + px;
+        const p4y = bottom.y + py;
+        const c = this.getColorById(colorId);
+        g.clear();
+        g.fillColor = c;
+        g.moveTo(p1x, p1y);
+        g.lineTo(p2x, p2y);
+        g.lineTo(p3x, p3y);
+        g.lineTo(p4x, p4y);
+        g.close();
+        g.fill();
+    }
+
+    private getTargetSurfaceInParent(parentUT: UITransformType, fillRatio: number): Vec3 {
+        const target = this._pourTarget;
+        if (!target) return new Vec3();
+        const ut = target.node.getComponent(UITransformType);
+        if (!ut) {
+            const fallback = new Vec3();
+            target.getMouthWorldPosition(fallback);
+            return parentUT.convertToNodeSpaceAR(fallback);
+        }
+        const clampedFill = Math.max(0, Math.min(1, fillRatio));
+        const localSurface = new Vec3(0, -BottleComponent.BOTTLE_BODY_HEIGHT * 0.5 + BottleComponent.BOTTLE_BODY_HEIGHT * clampedFill, 0);
+        const world = ut.convertToWorldSpaceAR(localSurface);
+        return parentUT.convertToNodeSpaceAR(world);
     }
 
     /**
