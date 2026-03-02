@@ -104,8 +104,6 @@ export class BottleComponent extends Component {
     private static readonly POUR_STREAM_UNIT_TIME = 0.05;
     /** 液柱宽度（像素） */
     private static readonly POUR_STREAM_WIDTH = 4;
-    /** 液柱出液点向瓶口内缩像素（0 表示不内缩，直接贴角点） */
-    private static readonly POUR_STREAM_OUTLET_INSET = 2;
 
     /** 倒水液柱节点（Graphics） */
     private _pourStreamNode: Node | null = null;
@@ -953,7 +951,7 @@ export class BottleComponent extends Component {
     }
 
     /**
-     * 获取液柱出液点（倾倒侧瓶口角点，向内缩一点避免穿帮）
+     * 获取液柱出液点（瓶口中心，避免细颈瓶出现“虚空倒水”）
      */
     private getPourOutletInParent(parentUT: UITransformType): Vec3 {
         const selfUT = this.node.getComponent(UITransformType);
@@ -962,12 +960,7 @@ export class BottleComponent extends Component {
             this.getMouthWorldPosition(fallback);
             return parentUT.convertToNodeSpaceAR(fallback);
         }
-        const sign = this.node.angle >= 0 ? -1 : 1;
-        const localOutlet = new Vec3(
-            sign * (BottleComponent.BOTTLE_BODY_WIDTH * 0.5 - BottleComponent.POUR_STREAM_OUTLET_INSET),
-            BottleComponent.BOTTLE_BODY_HEIGHT * 0.5 - BottleComponent.POUR_STREAM_OUTLET_INSET,
-            0
-        );
+        const localOutlet = new Vec3(0, BottleComponent.BOTTLE_BODY_HEIGHT * 0.5, 0);
         const worldOutlet = selfUT.convertToWorldSpaceAR(localOutlet);
         return parentUT.convertToNodeSpaceAR(worldOutlet);
     }
