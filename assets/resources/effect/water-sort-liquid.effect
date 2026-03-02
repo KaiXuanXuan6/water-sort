@@ -2,8 +2,9 @@ CCEffect %{
   techniques:
   - name: transparent
     passes:
-    - vert: general-vs:vert
-      frag: liquid-fs:frag
+    # UI Sprite 必须使用 sprite-vs/sprite-fs；改回 general-vs 会在部分平台触发 UBO 未绑定错误。
+    - vert: sprite-vs:vert
+      frag: sprite-fs:frag
       depthStencilState:
         depthTest: false
         depthWrite: false
@@ -17,100 +18,141 @@ CCEffect %{
       rasterizerState:
         cullMode: none
       properties:
-        mainTexture: { value: white }
+        alphaThreshold: { value: 0.5 }
         resolution: { value: [46, 180, 0, 0], editor: { visible: false } }
-        colors: { value: [[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]], editor: { visible: false } }
-        heights: { value: [[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]], editor: { visible: false } }
+        color0: { value: [0, 0, 0, 0], editor: { visible: false } }
+        color1: { value: [0, 0, 0, 0], editor: { visible: false } }
+        color2: { value: [0, 0, 0, 0], editor: { visible: false } }
+        color3: { value: [0, 0, 0, 0], editor: { visible: false } }
+        height0: { value: [0, 0, 0, 0], editor: { visible: false } }
+        height1: { value: [0, 0, 0, 0], editor: { visible: false } }
+        height2: { value: [0, 0, 0, 0], editor: { visible: false } }
+        height3: { value: [0, 0, 0, 0], editor: { visible: false } }
         tiltWave: { value: [0, 0, 0, 0], editor: { visible: false } }
 }%
 
-CCProgram liquid-fs %{
+CCProgram sprite-vs %{
+  precision highp float;
+  #include <builtin/uniforms/cc-global>
+  #if USE_LOCAL
+    #include <builtin/uniforms/cc-local>
+  #endif
+  #if SAMPLE_FROM_RT
+    #include <common/common-define>
+  #endif
+
+  in vec3 a_position;
+  in vec2 a_texCoord;
+  in vec4 a_color;
+
+  out vec4 color;
+  out vec2 uv0;
+
+  vec4 vert () {
+    vec4 pos = vec4(a_position, 1.0);
+
+    #if USE_LOCAL
+      pos = cc_matWorld * pos;
+    #endif
+
+    #if USE_PIXEL_ALIGNMENT
+      pos = cc_matView * pos;
+      pos.xyz = floor(pos.xyz);
+      pos = cc_matProj * pos;
+    #else
+      pos = cc_matViewProj * pos;
+    #endif
+
+    uv0 = a_texCoord;
+    #if SAMPLE_FROM_RT
+      CC_HANDLE_RT_SAMPLE_FLIP(uv0);
+    #endif
+    color = a_color;
+
+    return pos;
+  }
+}%
+
+CCProgram sprite-fs %{
   precision highp float;
   #include <legacy/output>
   #include <builtin/uniforms/cc-global>
+  #include <builtin/internal/embedded-alpha>
+  #include <builtin/internal/alpha-test>
 
-  in vec2 v_uv;
+  in vec4 color;
+  in vec2 uv0;
 
-  #define PI 3.14159265359
   #define MAX_LAYERS 4
 
-  uniform sampler2D mainTexture;
+  #pragma builtin(local)
+  layout(set = 2, binding = 11) uniform sampler2D cc_spriteTexture;
 
-  uniform LiquidParams {
-    vec4 colors[4];
-    vec4 heights[4];
+  layout(std140) uniform Constants {
+    vec4 color0;
+    vec4 color1;
+    vec4 color2;
+    vec4 color3;
+    vec4 height0;
+    vec4 height1;
+    vec4 height2;
+    vec4 height3;
     vec4 resolution;  // xy = size, zw unused
-    vec4 tiltWave;     // x = tiltAngle, y = waveType; vec4 for engine FLOAT4
+    vec4 uvRange;     // x=minY, y=maxY, z=minX, w=maxX in spriteFrame UV
+    vec4 tiltWave;    // x = tiltAngle, y = waveType; vec4 for engine FLOAT4
   };
 
-  vec2 rotatePt(vec2 uv, float angle, vec2 center) {
-    float c = cos(angle), s = sin(angle);
-    vec2 d = uv - center;
-    return vec2(c*d.x - s*d.y, s*d.x + c*d.y) + center;
+  vec4 getLayerColor(int idx) {
+    if (idx == 0) return color0;
+    if (idx == 1) return color1;
+    if (idx == 2) return color2;
+    return color3;
   }
 
-  float drawWater(vec2 uv, float angle, float _height, int layerCount, int curIdx) {
-    float ratio = resolution.y / resolution.x;
-    bool toLeft = sin(angle) >= 0.0;
-    vec2 center = vec2(0.5, 1.0 - _height);
-    float _t = abs(tan(angle));
-
-    if (_height < 0.5) {
-      if (_t / ratio > 2.0 * _height) {
-        center.x = sqrt(2.0 * _height / _t * ratio) / 2.0;
-        center.y = 1.0 - sqrt(2.0 * _height * _t / ratio) / 2.0;
-        if (_t > ratio / (_height * 2.0)) {
-          center.y = 0.5;
-          center.x = _height;
-        }
-      }
-      if (!toLeft) center.x = 1.0 - center.x;
-    } else {
-      if (_t > 2.0 * ratio * (1.0 - _height)) {
-        center.x = sqrt(2.0 * ratio * (1.0 - _height) / _t) / 2.0;
-        center.y = sqrt(2.0 * ratio * (1.0 - _height) * _t) / 2.0 / ratio;
-        if (_t > ratio / (2.0 * (1.0 - _height))) {
-          center.y = 0.5;
-          center.x = 1.0 - _height;
-        }
-      }
-      if (toLeft) center.x = 1.0 - center.x;
-    }
-
-    uv.y *= ratio;
-    uv -= vec2(center.x, center.y * ratio);
-    vec2 uv1 = rotatePt(uv, angle, vec2(0.0));
-
-    float y = 0.0;
-    bool isTopLayer = (curIdx == layerCount - 1);
-    if (isTopLayer && abs(tiltWave.y) > 0.01) {
-      float amplitude = abs(tiltWave.y - 1.0) < 0.01 ? 0.08 : 0.03;
-      float omega     = abs(tiltWave.y - 1.0) < 0.01 ? 10.0 : 5.0;
-      float freq      = abs(tiltWave.y - 1.0) < 0.01 ? 10.0 : 6.0;
-      y = amplitude * sin(omega * uv1.x + freq * cc_time.x * (toLeft ? 1.0 : -1.0));
-    }
-
-    return (uv1.y > y) ? 1.0 : 0.0;
+  float getLayerHeight(int idx) {
+    if (idx == 0) return height0.x;
+    if (idx == 1) return height1.x;
+    if (idx == 2) return height2.x;
+    return height3.x;
   }
 
   vec4 frag() {
-    vec4 texColor = texture(mainTexture, v_uv);
+    vec4 texColor = CCSampleWithAlphaSeparated(cc_spriteTexture, uv0) * color;
     if (texColor.a < 0.01) discard;
 
-    float angle = mod(tiltWave.x, 360.0) * PI / 180.0;
+    float uvSpanY = max(abs(uvRange.y - uvRange.x), 1e-5);
+    float fillY = 1.0 - clamp((uv0.y - min(uvRange.x, uvRange.y)) / uvSpanY, 0.0, 1.0);
+    float uvSpanX = max(abs(uvRange.w - uvRange.z), 1e-5);
+    float normX = clamp((uv0.x - min(uvRange.z, uvRange.w)) / uvSpanX, 0.0, 1.0) - 0.5;
+
+    float angleRad = radians(tiltWave.x);
+    float tiltOffset = normX * clamp(tan(angleRad) * 0.25, -0.6, 0.6);
 
     int layerCount = 0;
     for (int i = 0; i < MAX_LAYERS; i++) {
-      if (heights[i].x > 0.001) layerCount++;
+      if (getLayerHeight(i) > 0.001) layerCount++;
     }
 
     float cumHeight = 0.0;
     for (int i = 0; i < MAX_LAYERS; i++) {
-      if (heights[i].x < 0.001) continue;
-      cumHeight += heights[i].x;
-      float a = drawWater(v_uv, angle, cumHeight, layerCount, i);
-      if (a > 0.0) {
-        return CCFragOutput(texColor * a * colors[i]);
+      float layerHeight = getLayerHeight(i);
+      if (layerHeight < 0.001) continue;
+
+      float prevHeight = cumHeight + tiltOffset;
+      cumHeight += layerHeight;
+      float currHeight = cumHeight + tiltOffset;
+
+      if (i == layerCount - 1 && abs(tiltWave.y) > 0.01) {
+        float waveAmp = abs(tiltWave.y - 1.0) < 0.01 ? 0.03 : 0.015;
+        float waveFreq = abs(tiltWave.y - 1.0) < 0.01 ? 10.0 : 6.0;
+        float waveSpeed = abs(tiltWave.y - 1.0) < 0.01 ? 6.0 : 3.5;
+        currHeight += waveAmp * sin((normX + 0.5) * waveFreq + cc_time.x * waveSpeed);
+      }
+
+      if (fillY >= prevHeight && fillY < currHeight) {
+        vec4 outColor = texColor * getLayerColor(i);
+        ALPHA_TEST(outColor);
+        return CCFragOutput(outColor);
       }
     }
 
