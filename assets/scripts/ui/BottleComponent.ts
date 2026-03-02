@@ -263,7 +263,7 @@ export class BottleComponent extends Component {
 
         // 先加载瓶子图与 waterContainer 的 x_2 遮罩图，再渲染水层（保证 SPRITE_STENCIL 生效）
         this.applyBottleType().then(() => {
-            if (this._bottleData) this.renderWaterLayers();
+            this.renderWaterLayers(data);
         });
 
         console.log(`[BottleComponent] 初始化瓶子 ${index}:`, data);
@@ -355,12 +355,13 @@ export class BottleComponent extends Component {
     }
 
     /**
-     * 渲染水层（同步到 water-sort-liquid Shader，需已绑定 waterSprite）
+     * 渲染水层（同步到 water-sort-liquid Shader）。传 data 时用传入值（init 异步回调防竞态），否则用 this._bottleData。
      */
-    public renderWaterLayers(): void {
-        if (!this._bottleData || !this.waterContainer) return;
-        const waters = this._bottleData.waters;
-        const capacity = this._bottleData.capacity;
+    public renderWaterLayers(data?: BottleState): void {
+        const d = data ?? this._bottleData;
+        if (!d || !this.waterContainer) return;
+        const waters = d.waters;
+        const capacity = d.capacity;
         const transform = this.waterContainer.getComponent(UITransformType);
         if (!transform) return;
 
