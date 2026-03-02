@@ -86,7 +86,6 @@ CCProgram sprite-fs %{
     vec4 colors[4];
     vec4 heights[4];
     vec4 resolution;  // xy = size, zw unused
-    vec4 uvRange;     // x=minY, y=maxY, z=minX, w=maxX in spriteFrame UV
     vec4 tiltWave;    // x = tiltAngle, y = waveType; vec4 for engine FLOAT4
   };
 
@@ -178,11 +177,7 @@ CCProgram sprite-fs %{
     vec4 texColor = CCSampleWithAlphaSeparated(cc_spriteTexture, uv0) * color;
     if (texColor.a < 0.01) discard;
 
-    float uvSpanY = max(abs(uvRange.y - uvRange.x), 1e-5);
-    float uvSpanX = max(abs(uvRange.w - uvRange.z), 1e-5);
-    float u = clamp((uv0.x - min(uvRange.z, uvRange.w)) / uvSpanX, 0.0, 1.0);
-    float v = clamp((uv0.y - min(uvRange.x, uvRange.y)) / uvSpanY, 0.0, 1.0);
-    vec2 uv = vec2(u, v);
+    vec2 uv = vec2(uv0.x, uv0.y);
 
     float angle = mod(tiltWave.x, 360.0) * 0.01745329251; // degrees to radians
 

@@ -67,10 +67,7 @@ export class BottleComponent extends Component {
     @property({ tooltip: '倾倒动画时长' })
     pourDuration: number = 0.3;
 
-    /** 水层区域：1_2 内腔 BOTTLE_INNER_*，1_1 瓶身 BOTTLE_BODY_* */
-    private static readonly BOTTLE_INNER_WIDTH = 55;
-    private static readonly BOTTLE_INNER_HEIGHT = 216;
-    /** 瓶身尺寸（1_1 图 60×216，内腔 1_2 为 BOTTLE_INNER_*） */
+    /** 瓶身/内腔统一尺寸（packable=false 后不再裁切，1_1 与 1_2 同尺寸） */
     public static readonly BOTTLE_BODY_WIDTH = 60;
     public static readonly BOTTLE_BODY_HEIGHT = 216;
 
@@ -293,9 +290,10 @@ export class BottleComponent extends Component {
         return AssetLoader.loadBottleSprite(typeId, 2).then((frame) => {
             if (frame && stencilSprite.isValid) {
                 stencilSprite.spriteFrame = frame;
+                if (this.waterSprite?.isValid) this.waterSprite.spriteFrame = frame;
                 const transform = this.waterContainer!.getComponent(UITransformType);
                 if (transform) {
-                    transform.setContentSize(BottleComponent.BOTTLE_INNER_WIDTH, BottleComponent.BOTTLE_INNER_HEIGHT);
+                    transform.setContentSize(BottleComponent.BOTTLE_BODY_WIDTH, BottleComponent.BOTTLE_BODY_HEIGHT);
                 }
             }
         });
@@ -366,8 +364,8 @@ export class BottleComponent extends Component {
         const transform = this.waterContainer.getComponent(UITransformType);
         if (!transform) return;
 
-        const cw = BottleComponent.BOTTLE_INNER_WIDTH;
-        const ch = BottleComponent.BOTTLE_INNER_HEIGHT;
+        const cw = BottleComponent.BOTTLE_BODY_WIDTH;
+        const ch = BottleComponent.BOTTLE_BODY_HEIGHT;
         transform.setContentSize(cw, ch);
         if (!this.waterSprite) return;
 
@@ -396,10 +394,9 @@ export class BottleComponent extends Component {
         const mat = this._waterMaterial;
         if (!mat || capacity <= 0) return;
 
-        const cw = BottleComponent.BOTTLE_INNER_WIDTH;
-        const ch = BottleComponent.BOTTLE_INNER_HEIGHT;
+        const cw = BottleComponent.BOTTLE_BODY_WIDTH;
+        const ch = BottleComponent.BOTTLE_BODY_HEIGHT;
         mat.setProperty('resolution', new Vec4(cw, ch, 0, 0));
-        this.syncUvRangeToShader(mat);
 
         const layerHeight = 1 / capacity;
         const effectiveHeights: number[] = new Array(BottleComponent.LIQUID_MAX_LAYERS).fill(0);
@@ -434,35 +431,6 @@ export class BottleComponent extends Component {
         }
         mat.setProperty('colors', colors);
         mat.setProperty('heights', heights);
-    }
-
-    /**
-     * 同步当前 WaterSprite 的 UV 范围到 Shader，兼容图集/trim 导致的非 0~1 UV。
-     */
-    private syncUvRangeToShader(mat: Material): void {
-        const frame = this.waterSprite?.spriteFrame as unknown as { uv?: number[] } | null;
-        const uv = frame?.uv;
-        if (!uv || uv.length < 8) {
-            mat.setProperty('uvRange', new Vec4(0, 1, 0, 1));
-            return;
-        }
-        let minX = Number.POSITIVE_INFINITY;
-        let maxX = Number.NEGATIVE_INFINITY;
-        let minY = Number.POSITIVE_INFINITY;
-        let maxY = Number.NEGATIVE_INFINITY;
-        for (let i = 0; i + 1 < uv.length; i += 2) {
-            const x = uv[i];
-            const y = uv[i + 1];
-            if (x < minX) minX = x;
-            if (x > maxX) maxX = x;
-            if (y < minY) minY = y;
-            if (y > maxY) maxY = y;
-        }
-        if (!Number.isFinite(minX) || !Number.isFinite(maxX) || !Number.isFinite(minY) || !Number.isFinite(maxY)) {
-            mat.setProperty('uvRange', new Vec4(0, 1, 0, 1));
-            return;
-        }
-        mat.setProperty('uvRange', new Vec4(minY, maxY, minX, maxX));
     }
 
     /**
