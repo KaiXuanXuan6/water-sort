@@ -166,14 +166,20 @@ CCProgram sprite-fs %{
       float currHeight = clamp(currBase + tiltOffset * currScale, 0.0, 1.0);
 
       if (i == layerCount - 1 && abs(tiltWave.y) > 0.01) {
-        float waveAmp = abs(tiltWave.y - 1.0) < 0.01 ? 0.03 : 0.01;
-        float waveFreq = abs(tiltWave.y - 1.0) < 0.01 ? 10.0 : 6.0;
-        float waveSpeed = abs(tiltWave.y - 1.0) < 0.01 ? 5.0 : 3.0;
-        // 贴壁场景下给波浪预留上下余量，避免被 0/1 clamp 吞掉而“看起来没波”。
-        float waveBase = clamp(currHeight, waveAmp * 1.2, 1.0 - waveAmp * 1.2);
+        // waveType=1: 目标瓶倒入阶段（较稳）；waveType=2: 源瓶倒出阶段（较强）。
+        float waveAmp = abs(tiltWave.y - 1.0) < 0.01 ? 0.02 : 0.05;
+        float waveFreq = abs(tiltWave.y - 1.0) < 0.01 ? 10.0 : 20.0;
+        float waveSpeed = abs(tiltWave.y - 1.0) < 0.01 ? 3.0 : 3.0;
+        // 波浪相对“当前液面基线”摆动，而不是相对瓶底累计高度。
+        float surfaceBase = currHeight;
+        float layerThickness = max(currHeight - prevHeight, 1e-4);
+        float effAmp = min(waveAmp, layerThickness * 0.45);
+        // 使用反旋转后的水平轴作为相位坐标，避免波纹沿瓶体本地坐标“贴底”。
+        float localY = fillY - 0.5;
+        float phaseX = normX * cos(angleRad) - localY * sin(angleRad);
         currHeight = clamp(
-          waveBase + waveAmp * sin((normX + 0.5) * waveFreq + cc_time.x * waveSpeed),
-          0.0, 1.0
+          surfaceBase + effAmp * sin((phaseX + 0.5) * waveFreq + cc_time.x * waveSpeed),
+          prevHeight + 1e-4, 1.0
         );
       }
 
