@@ -459,7 +459,7 @@ export class GameSceneController extends Component {
             }
             if (!bottleNode.isValid) return;
             current.setParent(bottleNode);
-            current.setPosition(new Vec3(0, 110, 0));
+            current.setPosition(new Vec3(0, 150, 0));
             current.active = true;
             Tween.stopAllByTarget(current);
             tween(current)
