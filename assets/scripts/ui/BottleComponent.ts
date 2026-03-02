@@ -67,9 +67,11 @@ export class BottleComponent extends Component {
     @property({ tooltip: '倾倒动画时长' })
     pourDuration: number = 0.3;
 
-    /** 瓶身/内腔统一尺寸（packable=false 后不再裁切，1_1 与 1_2 同尺寸） */
+    /** 瓶身尺寸 */
     public static readonly BOTTLE_BODY_WIDTH = 60;
     public static readonly BOTTLE_BODY_HEIGHT = 216;
+    /** 内腔宽度（内腔收进 5，高度与瓶身同） */
+    public static readonly BOTTLE_INNER_WIDTH = BottleComponent.BOTTLE_BODY_WIDTH - 5;
 
     // ========== 内部状态 ==========
 
@@ -293,7 +295,7 @@ export class BottleComponent extends Component {
                 if (this.waterSprite?.isValid) this.waterSprite.spriteFrame = frame;
                 const transform = this.waterContainer!.getComponent(UITransformType);
                 if (transform) {
-                    transform.setContentSize(BottleComponent.BOTTLE_BODY_WIDTH, BottleComponent.BOTTLE_BODY_HEIGHT);
+                    transform.setContentSize(BottleComponent.BOTTLE_INNER_WIDTH, BottleComponent.BOTTLE_BODY_HEIGHT);
                 }
             }
         });
@@ -364,7 +366,7 @@ export class BottleComponent extends Component {
         const transform = this.waterContainer.getComponent(UITransformType);
         if (!transform) return;
 
-        const cw = BottleComponent.BOTTLE_BODY_WIDTH;
+        const cw = BottleComponent.BOTTLE_INNER_WIDTH;
         const ch = BottleComponent.BOTTLE_BODY_HEIGHT;
         transform.setContentSize(cw, ch);
         if (!this.waterSprite) return;
@@ -394,7 +396,7 @@ export class BottleComponent extends Component {
         const mat = this._waterMaterial;
         if (!mat || capacity <= 0) return;
 
-        const cw = BottleComponent.BOTTLE_BODY_WIDTH;
+        const cw = BottleComponent.BOTTLE_INNER_WIDTH;
         const ch = BottleComponent.BOTTLE_BODY_HEIGHT;
         mat.setProperty('resolution', new Vec4(cw, ch, 0, 0));
 
