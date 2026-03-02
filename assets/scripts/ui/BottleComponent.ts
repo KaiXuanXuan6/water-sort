@@ -111,19 +111,19 @@ export class BottleComponent extends Component {
     /** 倒水液柱节点（Graphics） */
     private _pourStreamNode: Node | null = null;
     private _pourStreamGraphics: Graphics | null = null;
-    // 颜色配置（可在运行时修改）- 高对比、易区分、偏糖果感
+    // 颜色配置（可在运行时修改）- 略深的水色，易区分
     private static colorConfigs: ColorConfig[] = [
-        { colorId: 1, color: new Color(255, 82, 82) },    // 珊瑚红
-        { colorId: 2, color: new Color(72, 219, 131) },   // 翠绿
-        { colorId: 3, color: new Color(78, 205, 255) },   // 天蓝
-        { colorId: 4, color: new Color(255, 218, 68) },   // 明黄
-        { colorId: 5, color: new Color(171, 104, 255) },  // 薰衣草紫
-        { colorId: 6, color: new Color(255, 159, 67) },   // 蜜橙
-        { colorId: 7, color: new Color(77, 218, 218) },   // 青绿
-        { colorId: 8, color: new Color(255, 121, 198) },  // 玫粉
-        { colorId: 9, color: new Color(162, 175, 191) },  // 雾灰
-        { colorId: 10, color: new Color(250, 250, 252) }, // 米白
-        { colorId: 11, color: new Color(180, 130, 90) },  // 暖棕
+        { colorId: 1, color: new Color(199, 64, 64) },    // 深珊瑚红
+        { colorId: 2, color: new Color(56, 171, 102) },   // 深翠绿
+        { colorId: 3, color: new Color(61, 160, 199) },   // 深天蓝
+        { colorId: 4, color: new Color(199, 170, 53) },   // 深明黄
+        { colorId: 5, color: new Color(133, 81, 199) },   // 深薰衣草紫
+        { colorId: 6, color: new Color(199, 124, 52) },   // 深蜜橙
+        { colorId: 7, color: new Color(60, 170, 170) },   // 深青绿
+        { colorId: 8, color: new Color(199, 94, 154) },   // 深玫粉
+        { colorId: 9, color: new Color(126, 137, 149) },   // 深雾灰
+        { colorId: 10, color: new Color(195, 195, 197) },  // 深米白
+        { colorId: 11, color: new Color(140, 101, 70) },  // 深暖棕
     ];
 
     // ========== 事件 ==========
