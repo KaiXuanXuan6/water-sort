@@ -1,4 +1,4 @@
-import { _decorator, Component, Button, Label } from 'cc';
+import { _decorator, Component, Button, Label, Layout } from 'cc';
 import { NavigationManager, NavigationEvent, SceneName } from '../utils/NavigationManager';
 import { SoundManager } from '../utils/SoundManager';
 import { LevelConfig } from '../data/LevelConfig';
@@ -66,6 +66,10 @@ export class TopBarController extends Component {
         if (!this.backButton) return;
         const showBack = this._nav && this._nav.currentScene !== SceneName.HOME;
         this.backButton.node.active = showBack;
+        // 触发布局重算，使隐藏返回按钮后设置按钮仍保持在容器左侧
+        const leftButton = this.backButton.node.parent;
+        const layout = leftButton?.getComponent(Layout);
+        layout?.updateLayout();
     }
 
     private applyTitle(): void {
