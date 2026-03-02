@@ -538,7 +538,8 @@ export class BottleComponent extends Component {
         targetBottle: BottleComponent,
         movedCount: number,
         colorId: number,
-        duration: number,
+        unitPourTime: number,
+        motionTime: number,
         onComplete?: () => void
     ): void {
         if (!this._bottleData || this._bottleData.waters.length === 0) {
@@ -557,10 +558,15 @@ export class BottleComponent extends Component {
             to: targetBottle.bottleIndex
         });
 
-        const t1 = duration * 0.2;
-        const t2 = duration * 0.15;
-        const t3 = duration * 0.5;
-        const t4 = duration * 0.15;
+        // motionTime 仅控制位移/旋转/回位；unitPourTime 仅控制单格液体倒出/上涨时长。
+        // Phase 1: 源瓶移动到目标瓶上方（对位阶段）
+        const t1 = motionTime * (0.2 / 0.6);
+        // Phase 2: 源瓶旋转到倾倒角度（液面倾斜开始变明显）
+        const t2 = motionTime * (0.25 / 0.6);
+        // Phase 3: 保持倾倒并持续更新目标瓶液面上涨（单格时长 * 倒出格数）
+        const t3 = unitPourTime * Math.max(1, movedCount);
+        // Phase 4: 源瓶回正并回到原位
+        const t4 = motionTime * (0.15 / 0.6);
 
         const parent = this.node.parent;
         const sourceMouthWorld = new Vec3();
@@ -717,6 +723,9 @@ export class BottleComponent extends Component {
                 this._lastWaveType = 0;
                 this._waterMaterial.setProperty('tiltWave', new Vec4(this.node.angle, 0, 0, 0));
             }
+            if (this.waterSprite && (this._bottleData?.waters.length ?? 0) <= 0) {
+                this.waterSprite.node.active = false;
+            }
             return;
         }
         const capacity = this.getCapacity() || 4;
@@ -725,11 +734,22 @@ export class BottleComponent extends Component {
                 this._lastWaveType = 0;
                 this._waterMaterial.setProperty('tiltWave', new Vec4(this.node.angle, 0, 0, 0));
             }
+            if (this.waterSprite && (this._bottleData?.waters.length ?? 0) <= 0) {
+                this.waterSprite.node.active = false;
+            }
             return;
         }
 
-        if (this.waterSprite && !this._waterMaterial && this.waterSprite.customMaterial) {
-            this._waterMaterial = this.waterSprite.getMaterialInstance(0) || null;
+        if (this.waterSprite?.customMaterial) {
+            // 目标瓶为空时 node 可能处于 inactive，先激活以确保可拿到 MaterialInstance。
+            this.waterSprite.node.active = true;
+            if (!this._waterMaterial) {
+                this._waterMaterial = this.waterSprite.getMaterialInstance(0) || null;
+                if (!this._waterMaterial) {
+                    this.ensureWaterMaterial(() => { /* 下一帧继续由 setIncomingPour 驱动 */ });
+                    return;
+                }
+            }
         }
         if (this._waterMaterial) {
             this._lastWaveType = 2;

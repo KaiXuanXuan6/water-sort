@@ -331,8 +331,10 @@ export class GameSceneController extends Component {
         }
     }
 
-    /** 倒水动画时长（秒） */
-    private static readonly POUR_BASE_TIME = 1;
+    /** 倒出“单格液体”的基准时长（秒），用于液体倒出/上涨阶段 */
+    private static readonly POUR_UNIT_TIME = 0.50;
+    /** 非液体阶段总时长（秒），用于位移/旋转/回位 */
+    private static readonly POUR_MOTION_TIME = 1.00;
     /** 胜利横幅：填充时长（秒） */
     private static readonly WIN_BANNER_FILL_TIME = 0.45;
     /** 胜利横幅：文案淡入时长（秒） */
@@ -376,11 +378,12 @@ export class GameSceneController extends Component {
             return;
         }
 
-        const duration = GameSceneController.POUR_BASE_TIME;
+        const unitPourTime = GameSceneController.POUR_UNIT_TIME;
+        const motionTime = GameSceneController.POUR_MOTION_TIME;
         this._playState = PlayState.POURING;
         manager.setAllBottlesEnabled(false);
 
-        fromComp.playPourAnimation(toComp, moveInfo.movedCount, moveInfo.colorId, duration, () => {
+        fromComp.playPourAnimation(toComp, moveInfo.movedCount, moveInfo.colorId, unitPourTime, motionTime, () => {
             const result = this._engine.executeMove(fromIndex, toIndex);
             if (result.success) {
                 this._moveCount = this._engine.moveCount;

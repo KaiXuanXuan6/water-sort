@@ -126,7 +126,7 @@ CCProgram sprite-fs %{
     float normX = clamp((uv0.x - min(uvRange.z, uvRange.w)) / uvSpanX, 0.0, 1.0) - 0.5;
 
     float angleRad = radians(tiltWave.x);
-    float tiltOffset = normX * clamp(tan(angleRad) * 0.25, -0.6, 0.6);
+    float tiltOffset = -normX * clamp(tan(angleRad) * 0.2, -0.45, 0.45);
 
     int layerCount = 0;
     for (int i = 0; i < MAX_LAYERS; i++) {
@@ -138,18 +138,25 @@ CCProgram sprite-fs %{
       float layerHeight = getLayerHeight(i);
       if (layerHeight < 0.001) continue;
 
-      float prevHeight = cumHeight + tiltOffset;
+      float prevBase = cumHeight;
       cumHeight += layerHeight;
-      float currHeight = cumHeight + tiltOffset;
+      float currBase = cumHeight;
+
+      // 底部锚定：倾斜影响随高度递增，避免底部出现视觉缝隙。
+      float prevHeight = (i == 0) ? 0.0 : clamp(prevBase + tiltOffset * prevBase, 0.0, 1.0);
+      float currHeight = clamp(currBase + tiltOffset * currBase, 0.0, 1.0);
 
       if (i == layerCount - 1 && abs(tiltWave.y) > 0.01) {
-        float waveAmp = abs(tiltWave.y - 1.0) < 0.01 ? 0.03 : 0.015;
+        float waveAmp = abs(tiltWave.y - 1.0) < 0.01 ? 0.02 : 0.01;
         float waveFreq = abs(tiltWave.y - 1.0) < 0.01 ? 10.0 : 6.0;
-        float waveSpeed = abs(tiltWave.y - 1.0) < 0.01 ? 6.0 : 3.5;
-        currHeight += waveAmp * sin((normX + 0.5) * waveFreq + cc_time.x * waveSpeed);
+        float waveSpeed = abs(tiltWave.y - 1.0) < 0.01 ? 5.0 : 3.0;
+        currHeight = clamp(
+          currHeight + waveAmp * sin((normX + 0.5) * waveFreq + cc_time.x * waveSpeed),
+          0.0, 1.0
+        );
       }
 
-      if (fillY >= prevHeight && fillY < currHeight) {
+      if (currHeight > prevHeight && fillY >= prevHeight && fillY < currHeight) {
         vec4 outColor = texColor * getLayerColor(i);
         ALPHA_TEST(outColor);
         return CCFragOutput(outColor);
