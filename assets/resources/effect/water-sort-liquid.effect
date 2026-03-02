@@ -114,14 +114,15 @@ CCProgram sprite-fs %{
     float normX = clamp((uv0.x - min(uvRange.z, uvRange.w)) / uvSpanX, 0.0, 1.0) - 0.5;
 
     float totalFill = 0.0;
+    int layerCount = 0;
     for (int i = 0; i < MAX_LAYERS; i++) {
-      totalFill += clamp(getLayerHeight(i), 0.0, 1.0);
+      float h = getLayerHeight(i);
+      totalFill += clamp(h, 0.0, 1.0);
+      if (h > 0.001) layerCount++;
     }
     totalFill = clamp(totalFill, 0.0, 1.0);
 
     float angleRad = radians(tiltWave.x);
-    // 2D 倒水常用实践：静水面 + 角度斜率 + 体积反比增益 + 体积相关上限。
-    // 进一步强化 1 格液量的贴壁能力（低液量更激进）。
     float fillSafe = max(totalFill, 0.25);
     float volumeGain = pow(1.0 / fillSafe, 1.0);
     float lowFillNorm = 1.0 - totalFill;
@@ -130,13 +131,7 @@ CCProgram sprite-fs %{
     float slope = baseSlope * volumeGain * shapeGain;
     float tiltLimit = mix(0.90, 3.20, lowFillNorm);
     float tiltOffset = -normX * clamp(slope, -tiltLimit, tiltLimit);
-    // 关键：低液量时放大层高位移，抵消 base(层高) 很小时偏转被压缩的问题。
     float tiltHeightBoost = mix(1.0, 3.5, lowFillNorm);
-
-    int layerCount = 0;
-    for (int i = 0; i < MAX_LAYERS; i++) {
-      if (getLayerHeight(i) > 0.001) layerCount++;
-    }
 
     float cumHeight = 0.0;
     for (int i = 0; i < MAX_LAYERS; i++) {
