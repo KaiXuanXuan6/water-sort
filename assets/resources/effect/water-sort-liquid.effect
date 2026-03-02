@@ -104,75 +104,105 @@ CCProgram sprite-fs %{
     return heights[3].x;
   }
 
+  // 将点绕 center 旋转 angle 弧度
+  vec2 tranPt(vec2 uv, float angle, vec2 center) {
+    float c = cos(angle);
+    float s = sin(angle);
+    float Ox = center.x;
+    float Oy = center.y;
+    mat3 m = mat3(
+      c, -s, (1.0 - c) * Ox + s * Oy,
+      s,  c, (1.0 - c) * Oy - s * Ox,
+      0.0, 0.0, 1.0
+    );
+    return (m * vec3(uv.x, uv.y, 1.0)).xy;
+  }
+
+  // 根据倾斜角度与累计水位 _height，判断 uv 是否在该层液面之下
+  float drawWater(vec2 uv, float angle, float _height, int arrSize, int curIdx) {
+    float ratio = resolution.y / resolution.x;
+    bool toLeft = sin(angle) >= 0.0;
+    vec2 center = vec2(0.5, 1.0 - _height);
+
+    float _t = abs(tan(angle));
+    if (_height < 0.5) {
+      bool is_bottom = _t / ratio > 2.0 * _height;
+      if (is_bottom) {
+        center.x = sqrt(2.0 * _height / _t * ratio) / 2.0;
+        center.y = 1.0 - sqrt(2.0 * _height * _t / ratio) / 2.0;
+        bool is_top = _t > ratio / (_height * 2.0);
+        if (is_top) {
+          center.y = 0.5;
+          center.x = _height;
+        }
+      }
+      if (!toLeft) center.x = 1.0 - center.x;
+    } else {
+      bool is_top = _t > 2.0 * ratio * (1.0 - _height);
+      if (is_top) {
+        center.x = sqrt(2.0 * ratio * (1.0 - _height) / _t) / 2.0;
+        center.y = sqrt(2.0 * ratio * (1.0 - _height) * _t) / 2.0 / ratio;
+        bool is_bottom = _t > ratio / (2.0 * (1.0 - _height));
+        if (is_bottom) {
+          center.y = 0.5;
+          center.x = 1.0 - _height;
+        }
+      }
+      if (toLeft) center.x = 1.0 - center.x;
+    }
+
+    uv.y *= ratio;
+    uv -= vec2(center.x, center.y * ratio);
+    vec2 uv1 = tranPt(uv, angle, vec2(0.0));
+
+    float y = 0.0;
+    if (curIdx == arrSize - 1 && abs(tiltWave.y) > 0.01) {
+      float amplitude = 0.0;
+      float angularVelocity = 0.0;
+      float frequency = 0.0;
+      if (abs(tiltWave.y - 1.0) < 0.01) {
+        amplitude = 0.08;
+        angularVelocity = 10.0;
+        frequency = 10.0;
+      } else if (abs(tiltWave.y - 2.0) < 0.01) {
+        amplitude = 0.03;
+        angularVelocity = 5.0;
+        frequency = 6.0;
+      }
+      y = amplitude * sin((angularVelocity * uv1.x) + (frequency * cc_time.x) * (toLeft ? 1.0 : -1.0));
+    }
+    return (uv1.y > y) ? 1.0 : 0.0;
+  }
+
   vec4 frag() {
     vec4 texColor = CCSampleWithAlphaSeparated(cc_spriteTexture, uv0) * color;
     if (texColor.a < 0.01) discard;
 
     float uvSpanY = max(abs(uvRange.y - uvRange.x), 1e-5);
-    float fillY = 1.0 - clamp((uv0.y - min(uvRange.x, uvRange.y)) / uvSpanY, 0.0, 1.0);
     float uvSpanX = max(abs(uvRange.w - uvRange.z), 1e-5);
-    float normX = clamp((uv0.x - min(uvRange.z, uvRange.w)) / uvSpanX, 0.0, 1.0) - 0.5;
+    float u = clamp((uv0.x - min(uvRange.z, uvRange.w)) / uvSpanX, 0.0, 1.0);
+    float v = clamp((uv0.y - min(uvRange.x, uvRange.y)) / uvSpanY, 0.0, 1.0);
+    vec2 uv = vec2(u, v);
 
-    float totalFill = 0.0;
-    int layerCount = 0;
+    float angle = mod(tiltWave.x, 360.0) * 0.01745329251; // degrees to radians
+
+    int size = 0;
+    for (int i = 0; i < MAX_LAYERS; i++) {
+      if (getLayerHeight(i) > 0.001) size++;
+    }
+
+    float _height = 0.0;
     for (int i = 0; i < MAX_LAYERS; i++) {
       float h = getLayerHeight(i);
-      totalFill += clamp(h, 0.0, 1.0);
-      if (h > 0.001) layerCount++;
-    }
-    totalFill = clamp(totalFill, 0.0, 1.0);
-
-    float angleRad = radians(tiltWave.x);
-    float fillSafe = max(totalFill, 0.25);
-    float volumeGain = pow(1.0 / fillSafe, 1.0);
-    float lowFillNorm = 1.0 - totalFill;
-    float shapeGain = mix(1.0, 1.55, lowFillNorm * lowFillNorm);
-    float baseSlope = tan(angleRad) * 0.30;
-    float slope = baseSlope * volumeGain * shapeGain;
-    float tiltLimit = mix(0.90, 3.20, lowFillNorm);
-    float tiltOffset = -normX * clamp(slope, -tiltLimit, tiltLimit);
-    float tiltHeightBoost = mix(1.0, 3.5, lowFillNorm);
-
-    float cumHeight = 0.0;
-    for (int i = 0; i < MAX_LAYERS; i++) {
-      float layerHeight = getLayerHeight(i);
-      if (layerHeight < 0.001) continue;
-
-      float prevBase = cumHeight;
-      cumHeight += layerHeight;
-      float currBase = cumHeight;
-
-      // 底部锚定 + 低液量补偿：液体少时允许更明显贴壁。
-      float prevScale = min(1.0, prevBase * tiltHeightBoost);
-      float currScale = min(1.0, currBase * tiltHeightBoost);
-      float prevHeight = (i == 0) ? 0.0 : clamp(prevBase + tiltOffset * prevScale, 0.0, 1.0);
-      float currHeight = clamp(currBase + tiltOffset * currScale, 0.0, 1.0);
-
-      if (i == layerCount - 1 && abs(tiltWave.y) > 0.01) {
-        // waveType=1: 目标瓶倒入阶段（较稳）；waveType=2: 源瓶倒出阶段（较强）。
-        float waveAmp = abs(tiltWave.y - 1.0) < 0.01 ? 0.02 : 0.05;
-        float waveFreq = abs(tiltWave.y - 1.0) < 0.01 ? 10.0 : 20.0;
-        float waveSpeed = abs(tiltWave.y - 1.0) < 0.01 ? 5.0 : 3.0;
-        // 波浪相对“当前液面基线”摆动，而不是相对瓶底累计高度。
-        float surfaceBase = currHeight;
-        float layerThickness = max(currHeight - prevHeight, 1e-4);
-        float effAmp = min(waveAmp, layerThickness * 0.45);
-        // 使用反旋转后的水平轴作为相位坐标，避免波纹沿瓶体本地坐标“贴底”。
-        float localY = fillY - 0.5;
-        float phaseX = normX * cos(angleRad) - localY * sin(angleRad);
-        currHeight = clamp(
-          surfaceBase + effAmp * sin((phaseX + 0.5) * waveFreq + cc_time.x * waveSpeed),
-          prevHeight + 1e-4, 1.0
-        );
-      }
-
-      if (currHeight > prevHeight && fillY >= prevHeight && fillY < currHeight) {
+      if (h < 0.001) continue;
+      _height += h;
+      float a = drawWater(uv, angle, _height, size, i);
+      if (a > 0.0) {
         vec4 outColor = texColor * getLayerColor(i);
         ALPHA_TEST(outColor);
         return CCFragOutput(outColor);
       }
     }
-
     discard;
     return CCFragOutput(vec4(0.0));
   }
