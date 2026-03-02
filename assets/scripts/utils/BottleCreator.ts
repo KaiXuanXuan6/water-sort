@@ -49,10 +49,10 @@ export class BottleCreator {
 
         bottleNode.addChild(spriteNode);
 
-        // 创建水层容器（1_2 内腔 45x180）
+        // 创建水层容器（与 BottleComponent 内腔尺寸保持一致）
         const waterContainer = new Node('WaterContainer');
         const waterTransform = waterContainer.addComponent(UITransform);
-        waterTransform.setContentSize(45, 180);
+        waterTransform.setContentSize(BottleComponent.BOTTLE_INNER_WIDTH, BottleComponent.BOTTLE_INNER_HEIGHT);
         const mask = waterContainer.addComponent(Mask);
         mask.type = 3; // SPRITE_STENCIL
         waterContainer.addComponent(Sprite);

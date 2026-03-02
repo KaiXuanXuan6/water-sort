@@ -147,7 +147,7 @@ CCProgram sprite-fs %{
       float currHeight = clamp(currBase + tiltOffset * currBase, 0.0, 1.0);
 
       if (i == layerCount - 1 && abs(tiltWave.y) > 0.01) {
-        float waveAmp = abs(tiltWave.y - 1.0) < 0.01 ? 0.02 : 0.01;
+        float waveAmp = abs(tiltWave.y - 1.0) < 0.01 ? 0.03 : 0.015;
         float waveFreq = abs(tiltWave.y - 1.0) < 0.01 ? 10.0 : 6.0;
         float waveSpeed = abs(tiltWave.y - 1.0) < 0.01 ? 5.0 : 3.0;
         currHeight = clamp(

@@ -68,11 +68,11 @@ export class BottleComponent extends Component {
     pourDuration: number = 0.3;
 
     /** 水层区域：1_2 内腔 BOTTLE_INNER_*，1_1 瓶身 BOTTLE_BODY_* */
-    private static readonly BOTTLE_INNER_WIDTH = 46;
-    private static readonly BOTTLE_INNER_HEIGHT = 180;
-    /** 瓶身尺寸（1_1 图 50×180，内腔 1_2 为 BOTTLE_INNER_*） */
-    public static readonly BOTTLE_BODY_WIDTH = 50;
-    public static readonly BOTTLE_BODY_HEIGHT = 180;
+    private static readonly BOTTLE_INNER_WIDTH = 55;
+    private static readonly BOTTLE_INNER_HEIGHT = 216;
+    /** 瓶身尺寸（1_1 图 60×216，内腔 1_2 为 BOTTLE_INNER_*） */
+    public static readonly BOTTLE_BODY_WIDTH = 60;
+    public static readonly BOTTLE_BODY_HEIGHT = 216;
 
     // ========== 内部状态 ==========
 
