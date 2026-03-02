@@ -60,6 +60,13 @@ const DEFAULT_PROFILE: UserProfileData = {
 
 let _profile: UserProfileData = { ...DEFAULT_PROFILE };
 
+/** 金币数量变化时调用（由 UI 注册，用于刷新显示） */
+let _onCoinCountChange: (() => void) | null = null;
+
+export function setOnCoinCountChange(fn: (() => void) | null): void {
+    _onCoinCountChange = fn;
+}
+
 export function getSoundEnabled(): boolean {
     return _profile.soundEnabled;
 }
@@ -176,6 +183,7 @@ export function getCoinCount(): number {
 export function addCoinCount(amount: number): void {
     _profile.coinCount = Math.max(0, _profile.coinCount + amount);
     saveToStorage();
+    _onCoinCountChange?.();
 }
 
 /** 使用撤销道具，返回是否成功 */

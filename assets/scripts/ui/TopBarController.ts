@@ -2,6 +2,7 @@ import { _decorator, Component, Button, Label } from 'cc';
 import { NavigationManager, NavigationEvent, SceneName } from '../utils/NavigationManager';
 import { SoundManager } from '../utils/SoundManager';
 import { LevelConfig } from '../data/LevelConfig';
+import { getCoinCount, setOnCoinCountChange } from '../data/UserProfile';
 
 const { ccclass, property } = _decorator;
 
@@ -20,10 +21,14 @@ export class TopBarController extends Component {
     @property(Label)
     titleLabel: Label | null = null;
 
+    @property(Label)
+    coinNumLabel: Label | null = null;
+
     private _nav: NavigationManager | null = null;
     private _onSceneChange = (): void => {
         this.applyBackButtonVisibility();
         this.applyTitle();
+        this.applyCoinCount();
     };
 
     protected onLoad(): void {
@@ -31,12 +36,15 @@ export class TopBarController extends Component {
         if (this._nav) {
             this._nav.addListener(NavigationEvent.SCENE_LOAD_START, this._onSceneChange);
         }
+        setOnCoinCountChange(() => this.applyCoinCount());
         this.applyBackButtonVisibility();
         this.applyTitle();
+        this.applyCoinCount();
         this.bindButtonClicks();
     }
 
     protected onDestroy(): void {
+        setOnCoinCountChange(null);
         if (this._nav) {
             this._nav.removeListener(NavigationEvent.SCENE_LOAD_START, this._onSceneChange);
         }
@@ -45,6 +53,12 @@ export class TopBarController extends Component {
         }
         if (this.settingButton) {
             this.settingButton.node.off(Button.EventType.CLICK, this.onSettingClick, this);
+        }
+    }
+
+    private applyCoinCount(): void {
+        if (this.coinNumLabel) {
+            this.coinNumLabel.string = String(getCoinCount());
         }
     }
 
