@@ -125,8 +125,25 @@ CCProgram sprite-fs %{
     float uvSpanX = max(abs(uvRange.w - uvRange.z), 1e-5);
     float normX = clamp((uv0.x - min(uvRange.z, uvRange.w)) / uvSpanX, 0.0, 1.0) - 0.5;
 
+    float totalFill = 0.0;
+    for (int i = 0; i < MAX_LAYERS; i++) {
+      totalFill += clamp(getLayerHeight(i), 0.0, 1.0);
+    }
+    totalFill = clamp(totalFill, 0.0, 1.0);
+
     float angleRad = radians(tiltWave.x);
-    float tiltOffset = -normX * clamp(tan(angleRad) * 0.2, -0.45, 0.45);
+    // 2D 倒水常用实践：静水面 + 角度斜率 + 体积反比增益 + 体积相关上限。
+    // 进一步强化 1 格液量的贴壁能力（低液量更激进）。
+    float fillSafe = max(totalFill, 0.25);
+    float volumeGain = pow(1.0 / fillSafe, 1.0);
+    float lowFillNorm = 1.0 - totalFill;
+    float shapeGain = mix(1.0, 1.55, lowFillNorm * lowFillNorm);
+    float baseSlope = tan(angleRad) * 0.30;
+    float slope = baseSlope * volumeGain * shapeGain;
+    float tiltLimit = mix(0.90, 3.20, lowFillNorm);
+    float tiltOffset = -normX * clamp(slope, -tiltLimit, tiltLimit);
+    // 关键：低液量时放大层高位移，抵消 base(层高) 很小时偏转被压缩的问题。
+    float tiltHeightBoost = mix(1.0, 3.5, lowFillNorm);
 
     int layerCount = 0;
     for (int i = 0; i < MAX_LAYERS; i++) {
@@ -142,16 +159,20 @@ CCProgram sprite-fs %{
       cumHeight += layerHeight;
       float currBase = cumHeight;
 
-      // 底部锚定：倾斜影响随高度递增，避免底部出现视觉缝隙。
-      float prevHeight = (i == 0) ? 0.0 : clamp(prevBase + tiltOffset * prevBase, 0.0, 1.0);
-      float currHeight = clamp(currBase + tiltOffset * currBase, 0.0, 1.0);
+      // 底部锚定 + 低液量补偿：液体少时允许更明显贴壁。
+      float prevScale = min(1.0, prevBase * tiltHeightBoost);
+      float currScale = min(1.0, currBase * tiltHeightBoost);
+      float prevHeight = (i == 0) ? 0.0 : clamp(prevBase + tiltOffset * prevScale, 0.0, 1.0);
+      float currHeight = clamp(currBase + tiltOffset * currScale, 0.0, 1.0);
 
       if (i == layerCount - 1 && abs(tiltWave.y) > 0.01) {
-        float waveAmp = abs(tiltWave.y - 1.0) < 0.01 ? 0.02 : 0.01;
+        float waveAmp = abs(tiltWave.y - 1.0) < 0.01 ? 0.03 : 0.01;
         float waveFreq = abs(tiltWave.y - 1.0) < 0.01 ? 10.0 : 6.0;
         float waveSpeed = abs(tiltWave.y - 1.0) < 0.01 ? 5.0 : 3.0;
+        // 贴壁场景下给波浪预留上下余量，避免被 0/1 clamp 吞掉而“看起来没波”。
+        float waveBase = clamp(currHeight, waveAmp * 1.2, 1.0 - waveAmp * 1.2);
         currHeight = clamp(
-          currHeight + waveAmp * sin((normX + 0.5) * waveFreq + cc_time.x * waveSpeed),
+          waveBase + waveAmp * sin((normX + 0.5) * waveFreq + cc_time.x * waveSpeed),
           0.0, 1.0
         );
       }
