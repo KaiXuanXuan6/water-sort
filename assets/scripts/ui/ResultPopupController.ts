@@ -3,7 +3,7 @@ import { NavigationManager, NavigationEvent, PopupName } from '../utils/Navigati
 import { SoundManager } from '../utils/SoundManager';
 import { LevelConfig } from '../data/LevelConfig';
 import { ResultPayload } from '../data/ResultPayload';
-import { getProgressBarCleared, getProgressBarTarget } from '../data/UserProfile';
+import { getProgressBarCleared, getProgressBarTarget, setCurrentLevel } from '../data/UserProfile';
 import { ProgressBarAnim } from '../animation/ProgressBarAnim';
 import { StarPopAnim } from '../animation/StarPopAnim';
 import { BouncePopAnim } from '../animation/BouncePopAnim';
@@ -302,6 +302,7 @@ protected onLoad(): void {
 
         if (this._resultData.success) {
             const currentLevel = LevelConfig.levelIdToLevelNum(this._resultData.levelId);
+            setCurrentLevel(currentLevel + 1);
             const nextLevelId = LevelConfig.levelNumToLevelId(currentLevel + 1);
             this._navManager?.gotoGame(nextLevelId);
         } else {

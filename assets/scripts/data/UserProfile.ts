@@ -109,6 +109,7 @@ export function getUnlockedLevel(): number {
 
 export function setUnlockedLevel(level: number): void {
     _profile.unlockedLevel = Math.max(_profile.unlockedLevel, level);
+    saveToStorage();
 }
 
 export function setLevelStars(levelId: string, stars: number): void {
