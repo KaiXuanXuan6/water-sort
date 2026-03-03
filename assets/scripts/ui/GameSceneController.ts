@@ -538,7 +538,7 @@ export class GameSceneController extends Component {
             levelId: this._currentLevelId,
             moveCount: this._moveCount
         };
-        AdService.showResultInterstitialThen(() => {
+        AdService.showInterstitialThen(() => {
             this._navManager?.showResultPopup(payload);
         });
     }
@@ -566,7 +566,7 @@ export class GameSceneController extends Component {
             progressBarJustFilled
         };
         this.playWinBanner(() => {
-            AdService.showResultInterstitialThen(() => {
+            AdService.showInterstitialThen(() => {
                 this._navManager?.showResultPopup(payload);
             });
         });
