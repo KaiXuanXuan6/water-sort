@@ -146,6 +146,7 @@ export class MapSceneController extends Component {
             console.warn('[MapSceneController] 关卡列表容器未设置');
             return;
         }
+        this._levelButtons = [];
 
         // 只移除之前生成的关卡节点（保留 LevelContainer 等），避免 removeAllChildren 误删
         const toRemove: Node[] = [];
@@ -156,8 +157,10 @@ export class MapSceneController extends Component {
 
         const totalLevels = Math.max(1, LevelConfig.getTotalLevels());
         const pathPoints = DEFAULT_PATH_POSITIONS;
+        const pathPointCount = Math.floor(pathPoints.length / 2);
+        const visibleLevels = Math.min(totalLevels, pathPointCount);
 
-        for (let i = 1; i <= totalLevels; i++) {
+        for (let i = 1; i <= visibleLevels; i++) {
             const levelData: LevelButtonData = {
                 levelId: LevelConfig.levelNumToLevelId(i),
                 levelNum: i,
@@ -176,7 +179,10 @@ export class MapSceneController extends Component {
             }
         }
 
-        console.log(`[MapSceneController] 生成了 ${totalLevels} 个关卡按钮`);
+        if (visibleLevels < totalLevels) {
+            console.warn(`[MapSceneController] 路径点不足，仅显示前 ${visibleLevels}/${totalLevels} 关`);
+        }
+        console.log(`[MapSceneController] 生成了 ${visibleLevels} 个关卡按钮`);
     }
 
     /**

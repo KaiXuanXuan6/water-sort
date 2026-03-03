@@ -27,6 +27,5 @@
     },
     { "id": "bottle_3", "capacity": 4, "waters": [], "bottleType": 1 }
   ],
-  "maxMoves": 10,
   "difficulty": "easy"
 }
