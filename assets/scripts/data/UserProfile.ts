@@ -51,7 +51,7 @@ const DEFAULT_PROFILE: UserProfileData = {
     undoCount: 3,
     addTubeCount: 1,
     progressBarCleared: 0,
-    progressBarTarget: 1,
+    progressBarTarget: 6,
     unlockedBottleTypes: [1, 2],
     selectedBottleType: 1,
     unlockedBackgroundTypes: [1, 2],
