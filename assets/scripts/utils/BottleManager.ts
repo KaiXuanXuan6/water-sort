@@ -1,7 +1,6 @@
 import { _decorator, Component, Node, Prefab, instantiate, Vec3 } from 'cc';
 import { BottleState } from '../data/LevelConfig';
 import { BottleComponent } from '../ui/BottleComponent';
-import { BottleCreator } from './BottleCreator';
 
 const { ccclass, property } = _decorator;
 
@@ -32,40 +31,29 @@ export class BottleManager extends Component {
     }
 
     /**
-     * 异步创建瓶子（无预制体时用 BottleCreator 加载资源并创建，有预制体时同步实例化）
+     * 创建瓶子（使用预制体实例化）
      */
     public async createBottles(bottleData: BottleState[]): Promise<void> {
         if (!this.bottleContainer) {
             console.error('[BottleManager] 瓶子容器未设置');
             return;
         }
+        if (!this.bottlePrefab) {
+            console.error('[BottleManager] 瓶子预制体未设置');
+            return;
+        }
 
         this.clearBottles();
 
-        if (this.bottlePrefab) {
-            for (let i = 0; i < bottleData.length; i++) {
-                const bottleNode = instantiate(this.bottlePrefab);
-                const comp = bottleNode.getComponent(BottleComponent);
-                if (comp) {
-                    comp.init(i, bottleData[i]);
-                    this._bottleComponents.push(comp);
-                }
-                this.bottleContainer.addChild(bottleNode);
-                this._bottleNodes.push(bottleNode);
+        for (let i = 0; i < bottleData.length; i++) {
+            const bottleNode = instantiate(this.bottlePrefab);
+            const comp = bottleNode.getComponent(BottleComponent);
+            if (comp) {
+                comp.init(i, bottleData[i]);
+                this._bottleComponents.push(comp);
             }
-        } else {
-            for (let i = 0; i < bottleData.length; i++) {
-                const bottleNode = await BottleCreator.createBottle({
-                    index: i,
-                    data: bottleData[i]
-                });
-                this.bottleContainer.addChild(bottleNode);
-                this._bottleNodes.push(bottleNode);
-                const comp = bottleNode.getComponent(BottleComponent);
-                if (comp) {
-                    this._bottleComponents.push(comp);
-                }
-            }
+            this.bottleContainer.addChild(bottleNode);
+            this._bottleNodes.push(bottleNode);
         }
 
         this.layoutBottles();
