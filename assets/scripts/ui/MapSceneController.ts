@@ -166,13 +166,21 @@ export class MapSceneController extends Component {
         if (!this.levelListContainer) return;
         this.traverseNodes(this.levelListContainer, (node) => {
             if (!node.name.startsWith('Level_')) return;
-            const ctrl = node.getComponent(LevelItemController);
-            if (!ctrl) return;
             const levelNum = parseInt(node.name.replace('Level_', ''), 10) || 1;
-            ctrl.setData(
-                { levelNum, isUnlocked: levelNum <= this._unlockedLevel },
-                this._currentLevel
-            );
+            const isUnlocked = levelNum <= this._unlockedLevel;
+
+            const ctrl = node.getComponent(LevelItemController);
+            if (ctrl) {
+                ctrl.setData(
+                    { levelNum, isUnlocked },
+                    this._currentLevel
+                );
+            }
+
+            const btn = node.getComponent(Button);
+            if (btn) {
+                btn.interactable = isUnlocked;
+            }
         });
     }
 
@@ -466,8 +474,10 @@ export class MapSceneController extends Component {
     private onLevelClick(levelData: LevelButtonData): void {
         SoundManager.instance?.playOneShot('button');
         console.log(`[MapSceneController] 点击关卡: ${levelData.levelNum}`);
+        this.loadUserData();
 
-        if (!levelData.isUnlocked) {
+        const isUnlockedNow = levelData.levelNum <= this._unlockedLevel;
+        if (!isUnlockedNow) {
             console.log('[MapSceneController] 关卡未解锁');
             return;
         }
