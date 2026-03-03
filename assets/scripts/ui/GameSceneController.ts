@@ -10,6 +10,7 @@ import { SoundManager } from '../utils/SoundManager';
 import { BottleComponent, BottleStateEnum } from './BottleComponent';
 import { ResultPopupController } from './ResultPopupController';
 import { GlobalBackgroundController } from './GlobalBackgroundController';
+import { AdService } from '../services/AdService';
 
 const { ccclass, property } = _decorator;
 
@@ -546,7 +547,9 @@ export class GameSceneController extends Component {
             levelId: this._currentLevelId,
             moveCount: this._moveCount
         };
-        this._navManager?.showResultPopup(payload);
+        AdService.showResultInterstitialThen(() => {
+            this._navManager?.showResultPopup(payload);
+        });
     }
 
     /**
@@ -572,7 +575,9 @@ export class GameSceneController extends Component {
             progressBarJustFilled
         };
         this.playWinBanner(() => {
-            this._navManager?.showResultPopup(payload);
+            AdService.showResultInterstitialThen(() => {
+                this._navManager?.showResultPopup(payload);
+            });
         });
     }
 

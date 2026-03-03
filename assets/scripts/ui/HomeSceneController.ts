@@ -1,8 +1,9 @@
-import { _decorator, Component, Button, Label } from 'cc';
+import { _decorator, Component, Button, Label, game, Game } from 'cc';
 import { NavigationManager, NavigationEvent, SceneName } from '../utils/NavigationManager';
 import { SoundManager } from '../utils/SoundManager';
 import { loadFromStorage, getCurrentLevel, getUnlockedLevel } from '../data/UserProfile';
 import { LevelConfig } from '../data/LevelConfig';
+import { AdService } from '../services/AdService';
 
 const { ccclass, property } = _decorator;
 
@@ -55,6 +56,7 @@ export class HomeSceneController extends Component {
      */
     protected start(): void {
         console.log('[HomeSceneController] 场景启动');
+        AdService.onAppForeground();
     }
 
     /**
@@ -65,6 +67,7 @@ export class HomeSceneController extends Component {
             this._navManager.removeListener(NavigationEvent.SCENE_LOAD_START, this.onSceneLoadStart);
             this._navManager.removeListener(NavigationEvent.SCENE_LOAD_COMPLETE, this.onSceneLoadComplete);
         }
+        game.off(Game.EVENT_SHOW, this.onAppShow, this);
     }
 
     /**
@@ -88,6 +91,7 @@ export class HomeSceneController extends Component {
             this._navManager.addListener(NavigationEvent.SCENE_LOAD_START, this.onSceneLoadStart);
             this._navManager.addListener(NavigationEvent.SCENE_LOAD_COMPLETE, this.onSceneLoadComplete);
         }
+        game.on(Game.EVENT_SHOW, this.onAppShow, this);
     }
 
     /**
@@ -127,6 +131,10 @@ export class HomeSceneController extends Component {
             this.refreshStartButtonLevelLabel();
         }
     };
+
+    private onAppShow(): void {
+        AdService.onAppForeground();
+    }
 
     /** 根据 UserProfile.currentLevel 更新开始按钮上的「Level N」文案 */
     private refreshStartButtonLevelLabel(): void {
