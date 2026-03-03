@@ -1,5 +1,5 @@
-import { _decorator, Component, director } from 'cc';
-const { ccclass } = _decorator;
+import { _decorator, Component, Node, director } from 'cc';
+const { ccclass, property } = _decorator;
 
 /**
  * 场景名称枚举
@@ -65,7 +65,6 @@ export class NavigationManager extends Component {
         [SceneName.COLLECTION]: 'scene',
         [SceneName.GAME]: 'scene'
     };
-
     private static _instance: NavigationManager | null = null;
     private _listeners: Map<NavigationEvent, NavigationListener[]> = new Map();
     private _currentScene: SceneName = SceneName.HOME;
@@ -74,6 +73,10 @@ export class NavigationManager extends Component {
 
     /** 当前选中的关卡ID（用于场景间传递数据） */
     public selectedLevelId: string = '';
+
+    /** 需要在启动时预热（触发 onLoad）的节点列表，在编辑器中绑定 */
+    @property([Node])
+    prewarmNodes: Node[] = [];
 
     /**
      * 获取单例实例
@@ -100,6 +103,7 @@ export class NavigationManager extends Component {
                 this._listeners.set(event as NavigationEvent, []);
             }
         }
+        this.prewarmPopupNodes();
     }
 
     /**
@@ -143,6 +147,17 @@ export class NavigationManager extends Component {
         if (listeners) {
             for (const listener of listeners) {
                 listener(data);
+            }
+        }
+    }
+
+    /**
+     * 统一预热弹窗节点：激活一次触发 onLoad，隐藏由弹窗控制器自身处理。
+     */
+    private prewarmPopupNodes(): void {
+        for (const popupNode of this.prewarmNodes) {
+            if (popupNode?.isValid) {
+                popupNode.active = true;
             }
         }
     }
@@ -256,7 +271,6 @@ export class NavigationManager extends Component {
         });
 
         console.log(`[NavigationManager] 打开弹窗: ${popupName}`);
-        // TODO: 实际加载弹窗预制体的逻辑由具体场景实现
     }
 
     /**
@@ -276,7 +290,6 @@ export class NavigationManager extends Component {
         });
 
         console.log(`[NavigationManager] 关闭弹窗: ${popupName}`);
-        // TODO: 实际关闭弹窗的逻辑由具体场景实现
     }
 
     /**
