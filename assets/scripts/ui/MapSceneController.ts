@@ -19,9 +19,6 @@ interface LevelButtonData {
     stars: number;
 }
 
-/** 当前配置的关卡总数（仅做 6 关时可改这里或用属性配置） */
-const DEFAULT_TOTAL_LEVELS = 6;
-
 /**
  * 路径上的点坐标（相对于 levelListContainer），顺序为 [x1, y1, x2, y2, ...]，与关卡 1、2、3… 一一对应。
  */
@@ -157,7 +154,7 @@ export class MapSceneController extends Component {
         });
         toRemove.forEach((c) => c.removeFromParent());
 
-        const totalLevels = Math.max(1, DEFAULT_TOTAL_LEVELS);
+        const totalLevels = Math.max(1, LevelConfig.getTotalLevels());
         const pathPoints = DEFAULT_PATH_POSITIONS;
 
         for (let i = 1; i <= totalLevels; i++) {

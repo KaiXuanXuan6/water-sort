@@ -273,8 +273,12 @@ protected onLoad(): void {
         if (!this._resultData) return;
 
         const currentLevelNum = LevelConfig.levelIdToLevelNum(this._resultData.levelId);
-        const nextLevelNum = currentLevelNum + 1;
-        const displayText = this._resultData.success ? `Level ${nextLevelNum}` : 'Replay';
+        const totalLevels = LevelConfig.getTotalLevels();
+        const isLastLevel = currentLevelNum >= totalLevels;
+        const nextLevelNum = Math.min(currentLevelNum + 1, totalLevels);
+        const displayText = this._resultData.success
+            ? (isLastLevel ? 'Finish' : `Level ${nextLevelNum}`)
+            : 'Replay';
 
         // 更新关卡号标签
         if (this.levelNumLabel) {
@@ -302,8 +306,15 @@ protected onLoad(): void {
 
         if (this._resultData.success) {
             const currentLevel = LevelConfig.levelIdToLevelNum(this._resultData.levelId);
-            setCurrentLevel(currentLevel + 1);
-            const nextLevelId = LevelConfig.levelNumToLevelId(currentLevel + 1);
+            const totalLevels = LevelConfig.getTotalLevels();
+            const isLastLevel = currentLevel >= totalLevels;
+            if (isLastLevel) {
+                this._navManager?.gotoMap();
+                return;
+            }
+            const nextLevelNum = currentLevel + 1;
+            setCurrentLevel(nextLevelNum);
+            const nextLevelId = LevelConfig.levelNumToLevelId(nextLevelNum);
             this._navManager?.gotoGame(nextLevelId);
         } else {
             this._navManager?.gotoGame(this._resultData.levelId);

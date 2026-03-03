@@ -1,3 +1,5 @@
+import { assetManager, JsonAsset } from 'cc';
+
 /**
  * 水层定义
  * 单个水块的数据结构
@@ -48,6 +50,23 @@ export interface LevelData {
  * 关卡数据的加载和验证、关卡 ID 与序号的转换（统一格式 level_001，避免各处重复解析）
  */
 export class LevelConfig {
+    private static readonly LEVELS_DIR = 'config/levels';
+
+    /**
+     * 动态统计 resources/config/levels 下以 level 开头的 json 数量
+     */
+    static getTotalLevels(): number {
+        const infos = assetManager.resources.getDirWithPath(LevelConfig.LEVELS_DIR, JsonAsset);
+        if (!infos || infos.length === 0) {
+            return 1;
+        }
+        const total = infos.filter((info) => {
+            const fileName = info.path.split('/').pop() ?? '';
+            return fileName.toLowerCase().startsWith('level');
+        }).length;
+        return Math.max(1, total);
+    }
+
     /**
      * 关卡 ID 转关卡序号（1-based）
      * 如 level_001 -> 1，无效返回 1

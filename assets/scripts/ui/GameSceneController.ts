@@ -116,7 +116,10 @@ export class GameSceneController extends Component {
             console.error('[GameSceneController] 未获取到关卡ID');
             return;
         }
-        await this.loadLevelData();
+        const loaded = await this.loadLevelData();
+        if (!loaded) {
+            return;
+        }
         await this.initGame();
     }
 
@@ -185,57 +188,19 @@ export class GameSceneController extends Component {
     }
 
     /**
-     * 从 resources 加载关卡 JSON（单一数据源，符合 DRY）；失败则使用模拟数据
+     * 从 resources 加载关卡 JSON（单一数据源，符合 DRY）；失败则返回地图页
      */
-    private async loadLevelData(): Promise<void> {
+    private async loadLevelData(): Promise<boolean> {
         const data = await loadLevelFromResources(this._currentLevelId);
         if (data) {
             this._currentLevelData = data;
             this._engine.loadLevel(data);
-            return;
+            return true;
         }
 
-        this._currentLevelData = this.createMockLevelData(this._currentLevelId);
-        this._engine.loadLevel(this._currentLevelData);
-    }
-
-    /**
-     * 创建模拟关卡数据（仅用于开发测试）
-     */
-    private createMockLevelData(levelId: string): LevelData {
-        // 创建一些测试瓶子
-        const bottles: any[] = [];
-
-        // 简单的测试关卡：3种颜色，每个瓶子2层
-        const colors = [1, 2, 3];
-        colors.forEach((color, index) => {
-            bottles.push({
-                id: `bottle_${index}`,
-                capacity: 4,
-                waters: [
-                    { colorId: color },
-                    { colorId: color }
-                ],
-                bottleType: 1
-            });
-        });
-
-        // 添加一些空瓶子
-        for (let i = 0; i < 2; i++) {
-            bottles.push({
-                id: `empty_${i}`,
-                capacity: 4,
-                waters: [],
-                bottleType: 1
-            });
-        }
-
-        return {
-            id: levelId,
-            level: LevelConfig.levelIdToLevelNum(levelId),
-            bottles: bottles,
-            difficulty: 'easy'
-        };
+        console.warn(`[GameSceneController] 关卡不存在或加载失败，返回地图页: ${this._currentLevelId}`);
+        this._navManager?.gotoMap();
+        return false;
     }
 
     /**
@@ -689,7 +654,7 @@ export class GameSceneController extends Component {
     private saveLevelProgress(): void {
         const levelId = this._currentLevelId;
         const currentLevel = LevelConfig.levelIdToLevelNum(levelId);
-        const nextLevel = currentLevel + 1;
+        const nextLevel = Math.min(currentLevel + 1, LevelConfig.getTotalLevels());
         const wasAlreadyPassed = currentLevel < getUnlockedLevel();
 
         console.log('[GameSceneController] 当前关卡:', currentLevel, '下一关:', nextLevel, '已通关:', wasAlreadyPassed);
