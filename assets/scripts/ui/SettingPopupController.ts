@@ -1,5 +1,5 @@
 import { _decorator, Component, Node, Button, Toggle, tween, Vec3 } from 'cc';
-import { NavigationManager, NavigationEvent, PopupName } from '../utils/NavigationManager';
+import { NavigationManager } from '../utils/NavigationManager';
 import { SoundManager } from '../utils/SoundManager';
 import { loadFromStorage, getSoundEnabled, setSoundEnabled, getMusicEnabled, setMusicEnabled } from '../data/UserProfile';
 
@@ -62,8 +62,6 @@ export class SettingPopupController extends Component {
         // 更新UI显示
         this.updateUI();
 
-        // 监听导航事件
-        this.setupNavigationListeners();
     }
 
     /**
@@ -71,15 +69,6 @@ export class SettingPopupController extends Component {
      */
     protected start(): void {
         console.log('[SettingPopupController] 弹窗启动');
-    }
-
-    /**
-     * 组件生命周期：销毁
-     */
-    protected onDestroy(): void {
-        if (this._navManager) {
-            this._navManager.removeListener(NavigationEvent.POPUP_OPEN, this.onPopupOpen);
-        }
     }
 
     /**
@@ -96,15 +85,6 @@ export class SettingPopupController extends Component {
 
         if (this.musicSwitch) {
             this.musicSwitch.node.on(Toggle.EventType.TOGGLE, this.onMusicSwitch, this);
-        }
-    }
-
-    /**
-     * 设置导航事件监听
-     */
-    private setupNavigationListeners(): void {
-        if (this._navManager) {
-            this._navManager.addListener(NavigationEvent.POPUP_OPEN, this.onPopupOpen);
         }
     }
 
@@ -149,31 +129,16 @@ export class SettingPopupController extends Component {
      * 隐藏弹窗
      */
     public hide(): void {
-        this.finishHide();
-    }
-
-    private finishHide(): void {
         this._isShowed = false;
         this.node.active = false;
-        this._navManager?.closePopup();
     }
-
-    /**
-     * 弹窗打开事件处理
-     */
-    private onPopupOpen = (data: any): void => {
-        console.log('[SettingPopupController] 收到 POPUP_OPEN 事件:', data?.popupName);
-        if (data.popupName === PopupName.SETTINGS) {
-            this.show();
-        }
-    };
 
     /**
      * 关闭按钮点击
      */
     private onCloseClick(): void {
         SoundManager.instance?.playOneShot('button');
-        this.hide();
+        this._navManager?.closePopup();
     }
 
     /**

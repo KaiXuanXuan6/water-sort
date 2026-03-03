@@ -1,5 +1,5 @@
 import { _decorator, Component, Node, Button, Label, Sprite, UITransform, Vec3, Tween, Widget } from 'cc';
-import { NavigationManager, NavigationEvent, PopupName } from '../utils/NavigationManager';
+import { NavigationManager } from '../utils/NavigationManager';
 import { SoundManager } from '../utils/SoundManager';
 import { LevelConfig } from '../data/LevelConfig';
 import { ResultPayload } from '../data/ResultPayload';
@@ -42,10 +42,6 @@ export class ResultPopupController extends Component {
     @property(Label)
     progressLabel: Label | null = null;
 
-    /** 进度条满时展示的奖励弹窗节点（RewardPopup），不填则不自动弹出 */
-    @property(Node)
-    rewardPopupNode: Node | null = null;
-
     private _navManager: NavigationManager | null = null;
     private _resultData: ResultPayload | null = null;
     private _isShowed: boolean = false;
@@ -64,28 +60,15 @@ protected onLoad(): void {
 
         this.hide();
         this.bindEvents();
-        this.setupNavigationListeners();
     }
 
     protected start(): void {
         console.log('[ResultPopupController] 启动');
     }
 
-    protected onDestroy(): void {
-        if (this._navManager) {
-            this._navManager.removeListener(NavigationEvent.POPUP_OPEN, this.onPopupOpen);
-        }
-    }
-
     private bindEvents(): void {
         if (this.resultActionButton) {
             this.resultActionButton.node.on(Button.EventType.CLICK, this.onResultActionClick, this);
-        }
-    }
-
-    private setupNavigationListeners(): void {
-        if (this._navManager) {
-            this._navManager.addListener(NavigationEvent.POPUP_OPEN, this.onPopupOpen);
         }
     }
 
@@ -106,9 +89,6 @@ protected onLoad(): void {
             this._previousProgressCleared = Math.max(0, this._previousProgressCleared - 1);
         }
 
-        if (this.rewardPopupNode?.isValid) {
-            this.rewardPopupNode.active = false;
-        }
         this.updateResultContent();
     }
 
@@ -184,15 +164,11 @@ protected onLoad(): void {
                     if (progressAnim) {
                         progressAnim.play(finalWidth, fullH, () => {
                             this._isAnimating = false;
-                            if (this._resultData?.progressBarJustFilled && this.rewardPopupNode?.isValid) {
-                                this.rewardPopupNode.active = true;
-                            }
+                            this.tryOpenRewardPopup();
                         });
                     } else {
                         this._isAnimating = false;
-                        if (this._resultData?.progressBarJustFilled && this.rewardPopupNode?.isValid) {
-                            this.rewardPopupNode.active = true;
-                        }
+                        this.tryOpenRewardPopup();
                     }
                     return 0;
                 } else {
@@ -286,13 +262,6 @@ protected onLoad(): void {
         }
     }
 
-    private onPopupOpen = (data: any): void => {
-        if (data.popupName === PopupName.RESULT && data.data) {
-            console.log('[ResultPopupController] 打开弹窗');
-            this.show(data.data);
-        }
-    };
-
     private onResultActionClick(): void {
         if (!this._resultData || this._isAnimating) return;
 
@@ -301,7 +270,6 @@ protected onLoad(): void {
         } else {
             SoundManager.instance?.playOneShot('refresh');
         }
-        this.hide();
         this._navManager?.closePopup();
 
         if (this._resultData.success) {
@@ -323,5 +291,11 @@ protected onLoad(): void {
 
     public get isShowed(): boolean {
         return this._isShowed;
+    }
+
+    private tryOpenRewardPopup(): void {
+        if (this._resultData?.progressBarJustFilled) {
+            this._navManager?.showRewardPopup();
+        }
     }
 }

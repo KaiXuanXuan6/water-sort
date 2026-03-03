@@ -15,8 +15,9 @@ export enum SceneName {
  * 弹窗名称枚举
  */
 export enum PopupName {
-    RESULT = 'ResultPop',
-    SETTINGS = 'SettingPop'
+    RESULT = 'ResultPopup',
+    SETTINGS = 'SettingPopup',
+    REWARD = 'RewardPopup'
 }
 
 /**
@@ -68,7 +69,7 @@ export class NavigationManager extends Component {
     private static _instance: NavigationManager | null = null;
     private _listeners: Map<NavigationEvent, NavigationListener[]> = new Map();
     private _currentScene: SceneName = SceneName.HOME;
-    private _currentPopup: PopupName | null = null;
+    private _popupStack: PopupName[] = [];
     private _isTransitioning: boolean = false;
 
     /** 当前选中的关卡ID（用于场景间传递数据） */
@@ -76,7 +77,7 @@ export class NavigationManager extends Component {
 
     /** 需要在启动时预热（触发 onLoad）的节点列表，在编辑器中绑定 */
     @property([Node])
-    prewarmNodes: Node[] = [];
+    PopupNodes: Node[] = [];
 
     /**
      * 获取单例实例
@@ -155,7 +156,7 @@ export class NavigationManager extends Component {
      * 统一预热弹窗节点：激活一次触发 onLoad，隐藏由弹窗控制器自身处理。
      */
     private prewarmPopupNodes(): void {
-        for (const popupNode of this.prewarmNodes) {
+        for (const popupNode of this.PopupNodes) {
             if (popupNode?.isValid) {
                 popupNode.active = true;
             }
@@ -173,7 +174,10 @@ export class NavigationManager extends Component {
      * 获取当前弹窗
      */
     public get currentPopup(): PopupName | null {
-        return this._currentPopup;
+        if (this._popupStack.length === 0) {
+            return null;
+        }
+        return this._popupStack[this._popupStack.length - 1];
     }
 
     /**
@@ -258,12 +262,19 @@ export class NavigationManager extends Component {
      * 打开弹窗
      */
     public openPopup(popupName: PopupName, data?: any): void {
-        if (this._currentPopup) {
-            console.warn('[NavigationManager] 已有弹窗打开，请先关闭');
+        if (this.currentPopup === popupName) {
+            console.warn('[NavigationManager] 当前弹窗已打开');
             return;
         }
 
-        this._currentPopup = popupName;
+        const popupNode = this.getPopupNode(popupName);
+        if (!popupNode?.isValid) {
+            console.warn(`[NavigationManager] 未绑定弹窗节点: ${popupName}`);
+            return;
+        }
+
+        this._popupStack.push(popupName);
+        this.showPopupNode(popupName, popupNode, data);
         this.emit(NavigationEvent.POPUP_OPEN, {
             event: NavigationEvent.POPUP_OPEN,
             popupName,
@@ -277,13 +288,17 @@ export class NavigationManager extends Component {
      * 关闭当前弹窗
      */
     public closePopup(): void {
-        if (!this._currentPopup) {
+        const popupName = this.currentPopup;
+        if (!popupName) {
             console.warn('[NavigationManager] 没有打开的弹窗');
             return;
         }
 
-        const popupName = this._currentPopup;
-        this._currentPopup = null;
+        const popupNode = this.getPopupNode(popupName);
+        if (popupNode?.isValid) {
+            this.hidePopupNode(popupName, popupNode);
+        }
+        this._popupStack.pop();
         this.emit(NavigationEvent.POPUP_CLOSE, {
             event: NavigationEvent.POPUP_CLOSE,
             popupName
@@ -336,6 +351,13 @@ export class NavigationManager extends Component {
     }
 
     /**
+     * 快捷方法：打开奖励弹窗
+     */
+    public showRewardPopup(data?: any): void {
+        this.openPopup(PopupName.REWARD, data);
+    }
+
+    /**
      * 返回上一场景
      * 简单实现：根据当前场景返回到对应的上一场景
      */
@@ -354,5 +376,47 @@ export class NavigationManager extends Component {
             default:
                 this.gotoHome();
         }
+    }
+
+    private getPopupNode(popupName: PopupName): Node | null {
+        for (const node of this.PopupNodes) {
+            if (node?.isValid && node.name === popupName) {
+                return node;
+            }
+        }
+        return null;
+    }
+
+    private showPopupNode(popupName: PopupName, popupNode: Node, data?: any): void {
+        const didShowByController = this.invokeControllerMethod(popupNode, 'show', data);
+        if (!didShowByController) {
+            popupNode.active = true;
+        }
+        if (popupName === PopupName.REWARD) {
+            popupNode.setSiblingIndex(popupNode.parent ? popupNode.parent.children.length - 1 : 0);
+        }
+    }
+
+    private hidePopupNode(_popupName: PopupName, popupNode: Node): void {
+        const didHideByController = this.invokeControllerMethod(popupNode, 'hide');
+        if (!didHideByController) {
+            popupNode.active = false;
+        }
+    }
+
+    private invokeControllerMethod(node: Node, methodName: 'show' | 'hide', data?: any): boolean {
+        for (const comp of node.components) {
+            const target = comp as unknown as { [key: string]: ((payload?: any) => void) | undefined };
+            const fn = target[methodName];
+            if (typeof fn === 'function') {
+                if (methodName === 'show') {
+                    fn.call(comp, data);
+                } else {
+                    fn.call(comp);
+                }
+                return true;
+            }
+        }
+        return false;
     }
 }

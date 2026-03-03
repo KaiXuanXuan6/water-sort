@@ -1,5 +1,5 @@
 import { _decorator, Component, Node, Button, Label, Sprite, SpriteFrame, UIOpacity, assetManager, Vec3, tween, Tween } from 'cc';
-import { NavigationManager, NavigationEvent, PopupName, SceneName } from '../utils/NavigationManager';
+import { NavigationManager, NavigationEvent, SceneName } from '../utils/NavigationManager';
 import { LevelData, LevelConfig, BottleState } from '../data/LevelConfig';
 import { loadLevelFromResources } from '../data/LevelDataLoader';
 import { ResultPayload } from '../data/ResultPayload';
@@ -8,7 +8,6 @@ import { WaterSortEngine } from '../logic/WaterSortEngine';
 import { BottleManager } from '../utils/BottleManager';
 import { SoundManager } from '../utils/SoundManager';
 import { BottleComponent, BottleStateEnum } from './BottleComponent';
-import { ResultPopupController } from './ResultPopupController';
 import { GlobalBackgroundController } from './GlobalBackgroundController';
 import { AdService } from '../services/AdService';
 
@@ -52,10 +51,6 @@ export class GameSceneController extends Component {
 
     @property(BottleManager)
     bottleManager: BottleManager | null = null;
-
-    // 弹窗节点
-    @property(Node)
-    resultPopup: Node | null = null;
 
     @property(Node)
     winBanner: Node | null = null;
@@ -155,8 +150,6 @@ export class GameSceneController extends Component {
         }
         if (this._navManager) {
             this._navManager.removeListener(NavigationEvent.SCENE_LOAD_START, this.onSceneLoadStart);
-            this._navManager.removeListener(NavigationEvent.POPUP_OPEN, this.onPopupOpen);
-            this._navManager.removeListener(NavigationEvent.POPUP_CLOSE, this.onPopupClose);
         }
     }
 
@@ -183,8 +176,6 @@ export class GameSceneController extends Component {
     private setupNavigationListeners(): void {
         if (this._navManager) {
             this._navManager.addListener(NavigationEvent.SCENE_LOAD_START, this.onSceneLoadStart);
-            this._navManager.addListener(NavigationEvent.POPUP_OPEN, this.onPopupOpen);
-            this._navManager.addListener(NavigationEvent.POPUP_CLOSE, this.onPopupClose);
         }
     }
 
@@ -742,32 +733,6 @@ export class GameSceneController extends Component {
         if (this._currentLevelId) {
             setCurrentLevel(LevelConfig.levelIdToLevelNum(this._currentLevelId));
             this.runGame().catch((err) => console.error('[GameSceneController] runGame 失败', err));
-        }
-    };
-
-    /**
-     * 弹窗打开事件处理：结算弹窗由本场景的 resultPopup 显示并传参
-     */
-    private onPopupOpen = (data: any): void => {
-        if (data.popupName !== PopupName.RESULT || !data.data) {
-            return;
-        }
-        if (this.resultPopup) {
-            this.resultPopup.active = true;
-            const ctrl = this.resultPopup.getComponent(ResultPopupController);
-            if (ctrl && ctrl.show) {
-                ctrl.show(data.data);
-            }
-        }
-    };
-
-    /**
-     * 弹窗关闭事件处理
-     */
-    private onPopupClose = (data: any): void => {
-        if (data.popupName === PopupName.RESULT && this.resultPopup) {
-            this.resultPopup.active = false;
-            console.log('[GameSceneController] 结算弹窗关闭');
         }
     };
 

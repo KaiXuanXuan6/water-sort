@@ -1,4 +1,5 @@
 import { _decorator, Component, Button } from 'cc';
+import { NavigationManager } from '../utils/NavigationManager';
 import { SoundManager } from '../utils/SoundManager';
 import { addCoinCount, addAddTubeCount, addUndoCount, resetProgressBarSegment } from '../data/UserProfile';
 
@@ -13,8 +14,10 @@ export class RewardPopupController extends Component {
     /** 领取按钮（COLLECT），在编辑器中绑定 */
     @property(Button)
     collectButton: Button | null = null;
+    private _navManager: NavigationManager | null = null;
 
     protected onLoad(): void {
+        this._navManager = NavigationManager.instance;
         this.node.active = false;
         if (this.collectButton) {
             this.collectButton.node.on(Button.EventType.CLICK, this.onCollectClick, this);
@@ -33,6 +36,6 @@ export class RewardPopupController extends Component {
         addCoinCount(25);
         addAddTubeCount(1);
         addUndoCount(1);
-        this.node.active = false;
+        this._navManager?.closePopup();
     }
 }
