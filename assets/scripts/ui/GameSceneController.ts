@@ -76,6 +76,7 @@ export class GameSceneController extends Component {
     private _wrongHintSpriteFrame: SpriteFrame | null = null;
     private _correctHintNode: Node | null = null;
     private _correctHintSpriteFrame: SpriteFrame | null = null;
+    private _bottleClickHandlers: Map<string, (data: { bottleIndex: number }) => void> = new Map();
 
     /**
      * 组件生命周期：加载
@@ -123,6 +124,17 @@ export class GameSceneController extends Component {
      * 组件生命周期：销毁
      */
     protected onDestroy(): void {
+        this.unbindBottleClickListeners();
+        if (this.undoButton) {
+            this.undoButton.node.off(Button.EventType.CLICK, this.onUndoClick, this);
+        }
+        if (this.replayButton) {
+            this.replayButton.node.off(Button.EventType.CLICK, this.onReplayClick, this);
+        }
+        if (this.addTubeButton) {
+            this.addTubeButton.node.off(Button.EventType.CLICK, this.onAddTubeClick, this);
+        }
+
         // 停止所有动画
         if (this._wrongHintNode) {
             Tween.stopAllByTarget(this._wrongHintNode);
@@ -252,8 +264,7 @@ export class GameSceneController extends Component {
         if (manager && this._currentLevelData.bottles.length > 0) {
             const selectedType = getSelectedBottleType();
             const bottlesToRender = this._currentLevelData.bottles.map((b) => ({ ...b, bottleType: selectedType }));
-            await manager.createBottles(bottlesToRender);
-            this.bindBottleClickListeners(manager);
+            await this.recreateAndBindBottles(manager, bottlesToRender);
             return;
         }
 
@@ -266,14 +277,44 @@ export class GameSceneController extends Component {
      * 为 BottleManager 中的每个瓶子绑定点击事件
      */
     private bindBottleClickListeners(manager: BottleManager): void {
+        this.unbindBottleClickListeners(manager);
         for (let i = 0; i < manager.bottleCount; i++) {
             const node = manager.getBottle(i);
             if (node) {
-                node.on(BottleComponent.EVENT_BOTTLE_CLICK, (data: { bottleIndex: number }) => {
+                const handler = (data: { bottleIndex: number }) => {
                     this.onBottleClick(data.bottleIndex);
-                }, this);
+                };
+                this._bottleClickHandlers.set(node.uuid, handler);
+                node.on(BottleComponent.EVENT_BOTTLE_CLICK, handler, this);
             }
         }
+    }
+
+    private unbindBottleClickListeners(manager?: BottleManager): void {
+        const targetManager = manager ?? this.bottleManager ?? this.node.getComponentInChildren(BottleManager);
+        if (!targetManager) {
+            this._bottleClickHandlers.clear();
+            return;
+        }
+        for (let i = 0; i < targetManager.bottleCount; i++) {
+            const node = targetManager.getBottle(i);
+            if (!node || !node.isValid) {
+                continue;
+            }
+            const handler = this._bottleClickHandlers.get(node.uuid);
+            if (!handler) {
+                continue;
+            }
+            node.off(BottleComponent.EVENT_BOTTLE_CLICK, handler, this);
+            this._bottleClickHandlers.delete(node.uuid);
+        }
+    }
+
+    private async recreateAndBindBottles(manager: BottleManager, bottles: BottleState[]): Promise<void> {
+        this.unbindBottleClickListeners(manager);
+        await manager.createBottles(bottles);
+        await manager.waitForBottleComponentsReady();
+        this.bindBottleClickListeners(manager);
     }
 
     /**
@@ -692,14 +733,14 @@ export class GameSceneController extends Component {
      */
     private onReplayClick(): void {
         SoundManager.instance?.playOneShot('refresh');
-        this.initGame();
+        this.initGame().catch((err) => console.error('[GameSceneController] 重玩初始化失败', err));
     }
 
 
     /**
      * 加管按钮点击
      */
-    private onAddTubeClick(): void {
+    private async onAddTubeClick(): Promise<void> {
         // 检查是否可以使用加管道具
         if (!useAddTube()) {
             // TODO: 显示道具用完提示
@@ -714,8 +755,7 @@ export class GameSceneController extends Component {
             // 重新创建瓶子UI
             const manager = this.bottleManager ?? this.node.getComponentInChildren(BottleManager);
             if (manager) {
-                manager.createBottles(this._engine.levelData!.bottles);
-                this.bindBottleClickListeners(manager);
+                await this.recreateAndBindBottles(manager, this._engine.levelData!.bottles);
                 this.updatePropButtons();
             }
         }

@@ -61,6 +61,30 @@ export class BottleManager extends Component {
     }
 
     /**
+     * 等待所有瓶子组件完成 onLoad 触摸绑定。
+     * 原生首帧上实例化后可能晚一拍，需在绑定业务事件前确认组件可用。
+     */
+    public async waitForBottleComponentsReady(maxFrames: number = 8): Promise<boolean> {
+        for (let frame = 0; frame < maxFrames; frame++) {
+            let allReady = true;
+            for (let i = 0; i < this._bottleNodes.length; i++) {
+                const node = this._bottleNodes[i];
+                const comp = node?.getComponent(BottleComponent);
+                if (!node || !node.isValid || !comp) {
+                    allReady = false;
+                    break;
+                }
+            }
+            if (allReady) {
+                return true;
+            }
+            await new Promise<void>((resolve) => this.scheduleOnce(() => resolve(), 0));
+        }
+        console.warn('[BottleManager] 瓶子组件就绪等待超时，继续尝试绑定点击事件');
+        return false;
+    }
+
+    /**
      * 手动排列瓶子：每行最多 MAX_PER_ROW 个，超出换行，每行水平居中。
      */
     private layoutBottles(): void {
