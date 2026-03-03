@@ -308,14 +308,6 @@ export class BottleComponent extends Component {
     }
 
     /**
-     * 运行时注入 Sprite / 水层容器 / 图片引用（供 BottleCreator 等动态创建时使用，避免 as any 写 @property）
-     */
-    public setRuntimeRefs(sprite: Sprite, waterContainer: Node): void {
-        this.bottleSprite = sprite;
-        this.waterContainer = waterContainer;
-    }
-
-    /**
      * 设置瓶子索引
      */
     public setBottleIndex(index: number): void {
